@@ -3,9 +3,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { useEffect } from "react";
-import { useLocation } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 import { AuthProvider } from "./contexts/AuthContext";
 import { Navbar } from "./components/layout/Navbar";
@@ -28,6 +27,30 @@ const ScrollToTop = () => {
   return null;
 };
 
+// Define routes and their components in a separate component
+// to ensure everything is inside Router context
+const AppRoutes = () => {
+  return (
+    <>
+      <ScrollToTop />
+      <Navbar />
+      <AnimatePresence mode="wait">
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/plan" element={<PlanPage />} />
+          <Route path="/clients" element={<ClientsPage />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </AnimatePresence>
+      <Toaster />
+      <Sonner position="bottom-right" />
+    </>
+  );
+};
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -35,21 +58,7 @@ const App = () => (
     <TooltipProvider>
       <AuthProvider>
         <BrowserRouter>
-          <AnimatePresence mode="wait">
-            <ScrollToTop />
-            <Navbar />
-            <Routes>
-              <Route path="/" element={<HomePage />} />
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/register" element={<RegisterPage />} />
-              <Route path="/dashboard" element={<DashboardPage />} />
-              <Route path="/plan" element={<PlanPage />} />
-              <Route path="/clients" element={<ClientsPage />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </AnimatePresence>
-          <Toaster />
-          <Sonner position="bottom-right" />
+          <AppRoutes />
         </BrowserRouter>
       </AuthProvider>
     </TooltipProvider>

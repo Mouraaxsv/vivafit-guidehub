@@ -42,19 +42,19 @@ export const Footer = () => {
             <h3 className="font-semibold text-lg mb-4">Recursos</h3>
             <ul className="space-y-2">
               <li>
-                <Link to="#" className="text-muted-foreground hover:text-vivafit-600 transition-colors">
+                <span className="text-muted-foreground hover:text-vivafit-600 transition-colors cursor-pointer">
                   Blog
-                </Link>
+                </span>
               </li>
               <li>
-                <Link to="#" className="text-muted-foreground hover:text-vivafit-600 transition-colors">
+                <span className="text-muted-foreground hover:text-vivafit-600 transition-colors cursor-pointer">
                   Guias
-                </Link>
+                </span>
               </li>
               <li>
-                <Link to="#" className="text-muted-foreground hover:text-vivafit-600 transition-colors">
+                <span className="text-muted-foreground hover:text-vivafit-600 transition-colors cursor-pointer">
                   FAQ
-                </Link>
+                </span>
               </li>
             </ul>
           </div>
@@ -73,15 +73,15 @@ export const Footer = () => {
                 </a>
               </li>
               <li className="flex space-x-4 pt-2">
-                <a href="#" className="text-muted-foreground hover:text-vivafit-600 transition-colors">
+                <span className="text-muted-foreground hover:text-vivafit-600 transition-colors cursor-pointer">
                   <Twitter size={20} />
-                </a>
-                <a href="#" className="text-muted-foreground hover:text-vivafit-600 transition-colors">
+                </span>
+                <span className="text-muted-foreground hover:text-vivafit-600 transition-colors cursor-pointer">
                   <Instagram size={20} />
-                </a>
-                <a href="#" className="text-muted-foreground hover:text-vivafit-600 transition-colors">
+                </span>
+                <span className="text-muted-foreground hover:text-vivafit-600 transition-colors cursor-pointer">
                   <Github size={20} />
-                </a>
+                </span>
               </li>
             </ul>
           </div>
