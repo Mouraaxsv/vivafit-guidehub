@@ -1,5 +1,9 @@
-import { useLocation } from "react-router-dom";
+
+import { useLocation, Link } from "react-router-dom";
 import { useEffect } from "react";
+import { motion } from "framer-motion";
+import { Activity, ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const NotFound = () => {
   const location = useLocation();
@@ -12,14 +16,33 @@ const NotFound = () => {
   }, [location.pathname]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">404</h1>
-        <p className="text-xl text-gray-600 mb-4">Oops! Page not found</p>
-        <a href="/" className="text-blue-500 hover:text-blue-700 underline">
-          Return to Home
-        </a>
-      </div>
+    <div className="min-h-screen flex items-center justify-center px-4 bg-gradient-to-b from-white to-vivafit-50">
+      <motion.div 
+        className="text-center"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <Link 
+          to="/" 
+          className="inline-flex items-center gap-2 text-2xl font-bold mb-6"
+        >
+          <Activity className="h-6 w-6 text-vivafit-600" />
+          <span className="text-gradient">VivaFit</span>
+        </Link>
+        
+        <h1 className="text-9xl font-bold text-vivafit-600 mb-4">404</h1>
+        <p className="text-xl text-muted-foreground mb-8">
+          Oops! Página não encontrada
+        </p>
+        
+        <Button asChild size="lg" className="rounded-full">
+          <Link to="/">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Voltar para o início
+          </Link>
+        </Button>
+      </motion.div>
     </div>
   );
 };
