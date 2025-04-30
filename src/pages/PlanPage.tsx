@@ -22,6 +22,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 const PlanPage = () => {
   const [activeTab, setActiveTab] = useState("overview");
@@ -166,6 +167,30 @@ const PlanPage = () => {
         { name: "Castanhas (10g)", macros: "7g gorduras saudáveis", completed: false }
       ]
     }
+  ];
+
+  // Sample data for the weight progress chart
+  const weightData = [
+    { week: 'Semana 1', peso: 82.5 },
+    { week: 'Semana 2', peso: 81.8 },
+    { week: 'Semana 3', peso: 81.0 },
+    { week: 'Semana 4', peso: 80.3 },
+    { week: 'Semana 5', peso: 79.5 },
+    { week: 'Semana 6', peso: 78.9 },
+    { week: 'Semana 7', peso: 78.5 },
+    { week: 'Semana 8', peso: 78.2 },
+  ];
+
+  // Sample data for the body fat percentage chart
+  const bodyFatData = [
+    { week: 'Semana 1', gordura: 24 },
+    { week: 'Semana 2', gordura: 23.5 },
+    { week: 'Semana 3', gordura: 22.8 },
+    { week: 'Semana 4', gordura: 22.0 },
+    { week: 'Semana 5', gordura: 21.2 },
+    { week: 'Semana 6', gordura: 20.5 },
+    { week: 'Semana 7', gordura: 19.8 },
+    { week: 'Semana 8', gordura: 19 },
   ];
 
   return (
@@ -573,14 +598,27 @@ const PlanPage = () => {
                       <CardDescription>Evolução das últimas 8 semanas</CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <div className="h-[300px] flex items-center justify-center">
-                        <div className="text-center p-8 rounded-lg bg-muted/50">
-                          <ChartLine className="h-12 w-12 text-vivafit-600 mx-auto mb-4" />
-                          <h3 className="text-lg font-medium mb-2">Gráficos e métricas detalhadas</h3>
-                          <p className="text-sm text-muted-foreground">
-                            Visualize sua evolução ao longo do tempo com gráficos interativos
-                          </p>
-                        </div>
+                      <div className="h-[300px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart
+                            data={weightData}
+                            margin={{
+                              top: 5,
+                              right: 30,
+                              left: 20,
+                              bottom: 5,
+                            }}
+                          >
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis dataKey="week" />
+                            <YAxis />
+                            <Tooltip />
+                            <Line type="monotone" dataKey="peso" stroke="#7c3aed" activeDot={{ r: 8 }} />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
+                      <div className="mt-4 text-center">
+                        <p className="text-sm text-muted-foreground">Progresso do peso (kg)</p>
                       </div>
                     </CardContent>
                   </Card>
@@ -610,6 +648,37 @@ const PlanPage = () => {
                             <div className="text-lg font-semibold">{metric.value}</div>
                           </div>
                         ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Percentual de Gordura</CardTitle>
+                      <CardDescription>Evolução nas últimas 8 semanas</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="h-[300px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart
+                            data={bodyFatData}
+                            margin={{
+                              top: 5,
+                              right: 30,
+                              left: 20,
+                              bottom: 5,
+                            }}
+                          >
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis dataKey="week" />
+                            <YAxis />
+                            <Tooltip />
+                            <Line type="monotone" dataKey="gordura" stroke="#10b981" activeDot={{ r: 8 }} />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
+                      <div className="mt-4 text-center">
+                        <p className="text-sm text-muted-foreground">Percentual de gordura corporal (%)</p>
                       </div>
                     </CardContent>
                   </Card>
