@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { 
@@ -6,7 +5,7 @@ import {
   Calendar, 
   ChevronRight, 
   Dumbbell, 
-  LineChart, 
+  ChartLine, 
   Users, 
   Utensils,
   Clock,
@@ -311,7 +310,7 @@ const DashboardPage = () => {
                   <CardContent className="pt-6">
                     <div className="text-center">
                       <div className="inline-flex p-3 rounded-full bg-leaf-100 text-leaf-600 mb-3">
-                        {isProfessional ? <LineChart className="h-6 w-6" /> : <Calendar className="h-6 w-6" />}
+                        {isProfessional ? <ChartLine className="h-6 w-6" /> : <Calendar className="h-6 w-6" />}
                       </div>
                       <div className="text-2xl font-bold">
                         {isProfessional ? "84%" : "3/5"}

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { PageTransition } from "@/components/layout/PageTransition";
@@ -17,7 +16,8 @@ import {
   Clock,
   CircleCheck,
   CircleX,
-  ChevronRight
+  ChevronRight,
+  ChartLine
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -575,7 +575,7 @@ const PlanPage = () => {
                     <CardContent>
                       <div className="h-[300px] flex items-center justify-center">
                         <div className="text-center p-8 rounded-lg bg-muted/50">
-                          <LineChart className="h-12 w-12 text-vivafit-600 mx-auto mb-4" />
+                          <ChartLine className="h-12 w-12 text-vivafit-600 mx-auto mb-4" />
                           <h3 className="text-lg font-medium mb-2">Gráficos e métricas detalhadas</h3>
                           <p className="text-sm text-muted-foreground">
                             Visualize sua evolução ao longo do tempo com gráficos interativos
