@@ -3,19 +3,34 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { toast } from "sonner";
 
 export type UserRole = 'user' | 'professional';
+export type UserGoal = 'lose_weight' | 'gain_muscle' | 'improve_health' | 'increase_flexibility';
+
+export interface UserPhysicalInfo {
+  weight?: number;
+  height?: number;
+  age?: number;
+  goals?: UserGoal[];
+}
 
 export interface User {
   id: string;
   name: string;
   email: string;
   role: UserRole;
+  physicalInfo?: UserPhysicalInfo;
 }
 
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string, role: UserRole) => Promise<void>;
+  register: (
+    name: string, 
+    email: string, 
+    password: string, 
+    role: UserRole, 
+    physicalInfo?: UserPhysicalInfo
+  ) => Promise<void>;
   logout: () => void;
 }
 
@@ -28,6 +43,12 @@ const MOCK_USERS: User[] = [
     name: 'John Doe',
     email: 'user@example.com',
     role: 'user',
+    physicalInfo: {
+      weight: 75,
+      height: 178,
+      age: 30,
+      goals: ['improve_health', 'gain_muscle']
+    }
   },
   {
     id: '2',
@@ -74,7 +95,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const register = async (name: string, email: string, password: string, role: UserRole) => {
+  const register = async (
+    name: string, 
+    email: string, 
+    password: string, 
+    role: UserRole,
+    physicalInfo?: UserPhysicalInfo
+  ) => {
     setIsLoading(true);
     try {
       // Simulate API call
@@ -91,6 +118,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         name,
         email,
         role,
+        physicalInfo,
       };
       
       // Add to mock database
