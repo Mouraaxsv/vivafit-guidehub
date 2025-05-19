@@ -169,13 +169,16 @@ const ClientDetailPage = () => {
   // Determine BMI status
   let bmiStatus = "Normal";
   let bmiColor = "text-green-500";
-  if (bmi < 18.5) {
+  
+  // Corrected: Parse bmi as a number before comparison
+  const bmiValue = parseFloat(bmi);
+  if (bmiValue < 18.5) {
     bmiStatus = "Abaixo do peso";
     bmiColor = "text-yellow-500";
-  } else if (bmi >= 25 && bmi < 30) {
+  } else if (bmiValue >= 25 && bmiValue < 30) {
     bmiStatus = "Sobrepeso";
     bmiColor = "text-orange-500";
-  } else if (bmi >= 30) {
+  } else if (bmiValue >= 30) {
     bmiStatus = "Obesidade";
     bmiColor = "text-red-500";
   }
@@ -710,3 +713,4 @@ const ClientDetailPage = () => {
 };
 
 export default ClientDetailPage;
+
