@@ -5,9 +5,43 @@ import { ArrowRight, Activity, Dumbbell, Utensils, Brain, HeartPulse } from "luc
 import { Button } from "@/components/ui/button";
 import { Footer } from "@/components/layout/Footer";
 import { useAuth } from "@/contexts/AuthContext";
+import { useEffect } from "react";
+import { toast } from "sonner";
 
 const HomePage = () => {
   const { user } = useAuth();
+
+  useEffect(() => {
+    // Simular notificação de profissional disponível após 5 segundos
+    // Apenas para usuários comuns que acabaram de fazer login
+    if (user && user.role === 'user') {
+      const timer = setTimeout(() => {
+        toast.success("Um profissional está disponível para atendê-lo!", {
+          description: "Dr. Jane Smith está pronta para sua consulta",
+          action: {
+            label: "Ver perfil",
+            onClick: () => window.location.href = "/clients/2"
+          },
+        });
+      }, 5000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [user]);
+
+  // Função para formatar objetivos em texto legível
+  const formatGoals = (goals?: string[]) => {
+    if (!goals || goals.length === 0) return "Nenhum objetivo definido";
+    
+    const goalMap: Record<string, string> = {
+      'lose_weight': 'Perder peso',
+      'gain_muscle': 'Ganhar massa muscular',
+      'improve_health': 'Melhorar saúde geral',
+      'increase_flexibility': 'Aumentar flexibilidade'
+    };
+    
+    return goals.map(goal => goalMap[goal] || goal).join(', ');
+  };
 
   const featureItems = [
     {
@@ -32,26 +66,125 @@ const HomePage = () => {
     }
   ];
 
-  const testimonials = [
-    {
-      name: "Maria Silva",
-      role: "Cliente há 6 meses",
-      content: "O VivaFit transformou minha abordagem ao fitness. As recomendações personalizadas realmente fazem a diferença!",
-      avatar: "https://i.pravatar.cc/150?img=5"
-    },
-    {
-      name: "Carlos Oliveira",
-      role: "Nutricionista parceiro",
-      content: "Como profissional, a plataforma me ajuda a acompanhar meus clientes de forma mais eficiente e com dados precisos.",
-      avatar: "https://i.pravatar.cc/150?img=12"
-    },
-    {
-      name: "Juliana Costa",
-      role: "Cliente há 1 ano",
-      content: "Perdi 15kg seguindo as recomendações de exercícios e dieta. A combinação de IA com o suporte humano é perfeita.",
-      avatar: "https://i.pravatar.cc/150?img=9"
-    }
-  ];
+  // Renderização condicional com dados do usuário
+  const renderUserCard = () => {
+    if (!user || user.role !== 'user' || !user.physicalInfo) return null;
+    
+    const { weight, height, age, goals } = user.physicalInfo;
+    const bmi = weight && height ? (weight / Math.pow(height/100, 2)).toFixed(1) : null;
+    
+    return (
+      <motion.div
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.7, delay: 0.2 }}
+        className="relative mx-auto"
+      >
+        <div className="glass-card p-6 relative z-10 max-w-md mx-auto">
+          <div className="flex justify-between items-center mb-4">
+            <div className="flex items-center gap-2">
+              <Activity className="h-5 w-5 text-vivafit-600" />
+              <h3 className="font-medium">Seu Perfil</h3>
+            </div>
+            <div className="text-sm text-muted-foreground">Dados Pessoais</div>
+          </div>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm text-muted-foreground">Peso</p>
+                <p className="font-medium">{weight ? `${weight} kg` : 'Não informado'}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Altura</p>
+                <p className="font-medium">{height ? `${height} cm` : 'Não informada'}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Idade</p>
+                <p className="font-medium">{age ? `${age} anos` : 'Não informada'}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">IMC</p>
+                <p className="font-medium">{bmi ? `${bmi} kg/m²` : 'Não calculado'}</p>
+              </div>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Objetivos</p>
+              <p className="font-medium">{formatGoals(goals)}</p>
+            </div>
+            <div className="pt-2">
+              <Button asChild variant="outline" className="w-full">
+                <Link to="/dashboard">
+                  Ver meu dashboard
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+            </div>
+          </div>
+        </div>
+        
+        {/* Decorative elements */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 bg-vivafit-400/10 rounded-full filter blur-3xl -z-10"></div>
+        <div className="absolute top-1/4 right-1/4 w-40 h-40 bg-leaf-400/10 rounded-full filter blur-3xl -z-10"></div>
+      </motion.div>
+    );
+  };
+
+  // Renderizar dados de exemplo apenas para visitantes
+  const renderDemoCard = () => {
+    if (user) return null;
+
+    return (
+      <motion.div
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.7, delay: 0.2 }}
+        className="relative mx-auto"
+      >
+        <div className="glass-card p-6 relative z-10 max-w-md mx-auto">
+          <div className="flex justify-between items-center mb-4">
+            <div className="flex items-center gap-2">
+              <Activity className="h-5 w-5 text-vivafit-600" />
+              <h3 className="font-medium">Seu Progresso</h3>
+            </div>
+            <div className="text-sm text-muted-foreground">Hoje</div>
+          </div>
+          <div className="space-y-4">
+            <div>
+              <div className="flex justify-between mb-1 text-sm">
+                <span>Exercícios</span>
+                <span className="font-medium">78%</span>
+              </div>
+              <div className="h-2 bg-muted rounded-full overflow-hidden">
+                <div className="h-full bg-vivafit-500 rounded-full w-[78%]"></div>
+              </div>
+            </div>
+            <div>
+              <div className="flex justify-between mb-1 text-sm">
+                <span>Nutrição</span>
+                <span className="font-medium">92%</span>
+              </div>
+              <div className="h-2 bg-muted rounded-full overflow-hidden">
+                <div className="h-full bg-leaf-500 rounded-full w-[92%]"></div>
+              </div>
+            </div>
+            <div>
+              <div className="flex justify-between mb-1 text-sm">
+                <span>Hidratação</span>
+                <span className="font-medium">65%</span>
+              </div>
+              <div className="h-2 bg-muted rounded-full overflow-hidden">
+                <div className="h-full bg-blue-500 rounded-full w-[65%]"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {/* Decorative elements */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 bg-vivafit-400/10 rounded-full filter blur-3xl -z-10"></div>
+        <div className="absolute top-1/4 right-1/4 w-40 h-40 bg-leaf-400/10 rounded-full filter blur-3xl -z-10"></div>
+      </motion.div>
+    );
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -65,10 +198,12 @@ const HomePage = () => {
               transition={{ duration: 0.7 }}
             >
               <h1 className="text-4xl md:text-6xl font-bold leading-tight mb-6">
-                Transforme sua saúde com <span className="text-gradient">VivaFit</span>
+                {user ? `Olá, ${user.name}!` : 'Transforme sua saúde com'} <span className="text-gradient">VivaFit</span>
               </h1>
               <p className="text-xl text-muted-foreground mb-8 max-w-lg text-balance">
-                A plataforma que combina inteligência artificial com expertise profissional para oferecer recomendações personalizadas de exercícios e nutrição.
+                {user && user.role === 'user' ? 
+                  'Acompanhe seu progresso e conecte-se com profissionais qualificados para alcançar seus objetivos.' : 
+                  'A plataforma que combina inteligência artificial com expertise profissional para oferecer recomendações personalizadas de exercícios e nutrição.'}
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Button asChild size="lg" className="rounded-full">
@@ -87,55 +222,7 @@ const HomePage = () => {
               </div>
             </motion.div>
 
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.7, delay: 0.2 }}
-              className="relative mx-auto"
-            >
-              <div className="glass-card p-6 relative z-10 max-w-md mx-auto">
-                <div className="flex justify-between items-center mb-4">
-                  <div className="flex items-center gap-2">
-                    <Activity className="h-5 w-5 text-vivafit-600" />
-                    <h3 className="font-medium">Seu Progresso</h3>
-                  </div>
-                  <div className="text-sm text-muted-foreground">Hoje</div>
-                </div>
-                <div className="space-y-4">
-                  <div>
-                    <div className="flex justify-between mb-1 text-sm">
-                      <span>Exercícios</span>
-                      <span className="font-medium">78%</span>
-                    </div>
-                    <div className="h-2 bg-muted rounded-full overflow-hidden">
-                      <div className="h-full bg-vivafit-500 rounded-full w-[78%]"></div>
-                    </div>
-                  </div>
-                  <div>
-                    <div className="flex justify-between mb-1 text-sm">
-                      <span>Nutrição</span>
-                      <span className="font-medium">92%</span>
-                    </div>
-                    <div className="h-2 bg-muted rounded-full overflow-hidden">
-                      <div className="h-full bg-leaf-500 rounded-full w-[92%]"></div>
-                    </div>
-                  </div>
-                  <div>
-                    <div className="flex justify-between mb-1 text-sm">
-                      <span>Hidratação</span>
-                      <span className="font-medium">65%</span>
-                    </div>
-                    <div className="h-2 bg-muted rounded-full overflow-hidden">
-                      <div className="h-full bg-blue-500 rounded-full w-[65%]"></div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Decorative elements */}
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 bg-vivafit-400/10 rounded-full filter blur-3xl -z-10"></div>
-              <div className="absolute top-1/4 right-1/4 w-40 h-40 bg-leaf-400/10 rounded-full filter blur-3xl -z-10"></div>
-            </motion.div>
+            {renderUserCard() || renderDemoCard()}
           </div>
         </div>
 
@@ -189,8 +276,28 @@ const HomePage = () => {
             </p>
           </div>
 
+          {/* Mantenha os depoimentos existentes, pois são exemplos para marketing */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {testimonials.map((testimonial, index) => (
+            {[
+              {
+                name: "Maria Silva",
+                role: "Cliente há 6 meses",
+                content: "O VivaFit transformou minha abordagem ao fitness. As recomendações personalizadas realmente fazem a diferença!",
+                avatar: "https://i.pravatar.cc/150?img=5"
+              },
+              {
+                name: "Carlos Oliveira",
+                role: "Nutricionista parceiro",
+                content: "Como profissional, a plataforma me ajuda a acompanhar meus clientes de forma mais eficiente e com dados precisos.",
+                avatar: "https://i.pravatar.cc/150?img=12"
+              },
+              {
+                name: "Juliana Costa",
+                role: "Cliente há 1 ano",
+                content: "Perdi 15kg seguindo as recomendações de exercícios e dieta. A combinação de IA com o suporte humano é perfeita.",
+                avatar: "https://i.pravatar.cc/150?img=9"
+              }
+            ].map((testimonial, index) => (
               <motion.div
                 key={index}
                 initial={{ opacity: 0, y: 20 }}
@@ -226,14 +333,16 @@ const HomePage = () => {
       <section className="py-20 px-4 bg-gradient-to-r from-vivafit-500 to-leaf-500 text-white">
         <div className="container mx-auto text-center">
           <h2 className="text-3xl md:text-4xl font-bold mb-6">
-            Pronto para transformar sua saúde?
+            {user ? 'Vamos começar sua jornada de saúde?' : 'Pronto para transformar sua saúde?'}
           </h2>
           <p className="text-xl mb-8 max-w-2xl mx-auto">
-            Junte-se a milhares de pessoas que estão melhorando sua qualidade de vida com o VivaFit.
+            {user 
+              ? 'Acesse seu dashboard para ver recomendações personalizadas e conectar-se com profissionais.' 
+              : 'Junte-se a milhares de pessoas que estão melhorando sua qualidade de vida com o VivaFit.'}
           </p>
           <Button asChild size="lg" variant="secondary" className="rounded-full">
             <Link to={user ? "/dashboard" : "/register"}>
-              {user ? "Acesse sua conta" : "Comece gratuitamente"}
+              {user ? "Ver meu dashboard" : "Comece gratuitamente"}
               <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
           </Button>
