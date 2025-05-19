@@ -7,8 +7,9 @@ import {
   Plus, 
   Filter, 
   ArrowUpDown, 
-  LineChart, 
-  Activity 
+  LineChart as ChartLineIcon, 
+  Activity,
+  MessageSquare
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
+import Users from "@/components/icons/Users";
 
 const ClientsPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -155,7 +157,7 @@ const ClientsPage = () => {
       value: "63%",
       change: "+5%",
       since: "último mês",
-      icon: <LineChart className="h-5 w-5 text-leaf-600" />
+      icon: <ChartLineIcon className="h-5 w-5 text-leaf-600" />
     },
     {
       title: "Taxa de Retenção",
@@ -188,6 +190,21 @@ const ClientsPage = () => {
               Gerencie e acompanhe o progresso dos seus clientes
             </motion.p>
           </div>
+
+          {/* AI Consultation Button */}
+          <motion.div 
+            className="mb-6"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+          >
+            <Button asChild variant="outline" className="gap-2">
+              <Link to="/consultation">
+                <MessageSquare className="h-4 w-4" />
+                Consultar IA sobre Saúde e Treinamento
+              </Link>
+            </Button>
+          </motion.div>
 
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -369,8 +386,5 @@ const ClientsPage = () => {
     </PageTransition>
   );
 };
-
-// Missing Users icon
-const Users = Activity;
 
 export default ClientsPage;

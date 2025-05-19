@@ -14,6 +14,8 @@ import RegisterPage from "./pages/RegisterPage";
 import DashboardPage from "./pages/DashboardPage";
 import PlanPage from "./pages/PlanPage";
 import ClientsPage from "./pages/ClientsPage";
+import ClientDetailPage from "./pages/ClientDetailPage";
+import ConsultationPage from "./pages/ConsultationPage";
 import NotFound from "./pages/NotFound";
 
 // Scroll to top on route change
@@ -42,6 +44,8 @@ const AppRoutes = () => {
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/plan" element={<PlanPage />} />
           <Route path="/clients" element={<ClientsPage />} />
+          <Route path="/clients/:id" element={<ClientDetailPage />} />
+          <Route path="/consultation" element={<ConsultationPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </AnimatePresence>
