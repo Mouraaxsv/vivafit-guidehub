@@ -1,8 +1,7 @@
-
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Activity, ArrowRight, Weight, Height, Calendar, Target, ChevronRight } from "lucide-react";
+import { Activity, ArrowRight, Weight, Ruler, Calendar, Target, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -284,7 +283,7 @@ const RegisterPage = () => {
                           <FormItem>
                             <FormLabel>
                               <div className="flex items-center gap-1">
-                                <Height className="w-4 h-4" />
+                                <Ruler className="w-4 h-4" />
                                 <span>Altura (cm)</span>
                               </div>
                             </FormLabel>
