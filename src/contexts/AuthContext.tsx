@@ -10,6 +10,10 @@ export interface UserPhysicalInfo {
   height?: number;
   age?: number;
   goals?: UserGoal[];
+  hasMedicalConditions?: boolean;
+  medicalConditionsDetails?: string;
+  takesMedication?: boolean;
+  medicationDetails?: string;
 }
 
 export interface User {
@@ -18,6 +22,9 @@ export interface User {
   email: string;
   role: UserRole;
   physicalInfo?: UserPhysicalInfo;
+  theme?: 'light' | 'dark' | 'system';
+  fontSize?: 'small' | 'medium' | 'large';
+  highContrast?: boolean;
 }
 
 interface AuthContextType {
@@ -32,6 +39,7 @@ interface AuthContextType {
     physicalInfo?: UserPhysicalInfo
   ) => Promise<void>;
   logout: () => void;
+  updateUser: (updates: Partial<User>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -47,14 +55,19 @@ const MOCK_USERS: User[] = [
       weight: 75,
       height: 178,
       age: 30,
-      goals: ['improve_health', 'gain_muscle']
-    }
+      goals: ['improve_health', 'gain_muscle'],
+      hasMedicalConditions: false,
+      takesMedication: false
+    },
+    theme: 'system',
+    fontSize: 'medium'
   },
   {
     id: '2',
     name: 'Dr. Jane Smith',
     email: 'pro@example.com',
     role: 'professional',
+    theme: 'light'
   }
 ];
 
@@ -119,6 +132,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         email,
         role,
         physicalInfo,
+        theme: 'system',
+        fontSize: 'medium',
+        highContrast: false
       };
       
       // Add to mock database
@@ -136,6 +152,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const updateUser = (updates: Partial<User>) => {
+    if (!user) return;
+    
+    const updatedUser = { ...user, ...updates };
+    setUser(updatedUser);
+    localStorage.setItem('vivafit_user', JSON.stringify(updatedUser));
+    
+    // Update in mock database
+    const userIndex = MOCK_USERS.findIndex(u => u.id === user.id);
+    if (userIndex >= 0) {
+      MOCK_USERS[userIndex] = updatedUser;
+    }
+    
+    toast.success('Profile updated successfully!');
+  };
+
   const logout = () => {
     setUser(null);
     localStorage.removeItem('vivafit_user');
@@ -143,7 +175,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, isLoading, login, register, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

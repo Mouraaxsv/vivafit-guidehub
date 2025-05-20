@@ -1,12 +1,15 @@
+
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Activity, ArrowRight, Weight, Ruler, Calendar, Target, ChevronRight } from "lucide-react";
+import { Activity, ArrowRight, Weight, Ruler, Calendar, Target, ChevronRight, Heart, Pill } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { 
   Select,
   SelectContent,
@@ -40,16 +43,34 @@ const formSchema = z.object({
   height: z.number().optional(),
   age: z.number().optional(),
   goals: z.array(z.enum(["lose_weight", "gain_muscle", "improve_health", "increase_flexibility"] as const)).optional(),
+  // Novos campos de saúde
+  hasMedicalConditions: z.boolean().optional(),
+  medicalConditionsDetails: z.string().optional(),
+  takesMedication: z.boolean().optional(),
+  medicationDetails: z.string().optional(),
 }).refine(data => data.password === data.confirmPassword, {
   message: "As senhas não coincidem",
   path: ["confirmPassword"],
-});
+}).refine(
+  data => !data.hasMedicalConditions || (data.hasMedicalConditions && data.medicalConditionsDetails),
+  {
+    message: "Por favor, detalhe suas condições médicas",
+    path: ["medicalConditionsDetails"],
+  }
+).refine(
+  data => !data.takesMedication || (data.takesMedication && data.medicationDetails),
+  {
+    message: "Por favor, detalhe seus medicamentos",
+    path: ["medicationDetails"],
+  }
+);
 
 const RegisterPage = () => {
   const navigate = useNavigate();
   const { register: registerUser, isLoading } = useAuth();
   const [error, setError] = useState("");
   const [step, setStep] = useState(1);
+  const totalSteps = 3; // Agora temos 3 passos
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -60,17 +81,26 @@ const RegisterPage = () => {
       confirmPassword: "",
       role: "user",
       goals: [],
+      hasMedicalConditions: false,
+      takesMedication: false,
     },
   });
 
   const role = form.watch("role");
   const isUser = role === "user";
+  const hasMedicalConditions = form.watch("hasMedicalConditions");
+  const takesMedication = form.watch("takesMedication");
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setError("");
     try {
       const { confirmPassword, ...userData } = values;
-      const { weight, height, age, goals, ...basicData } = userData;
+      const { 
+        weight, height, age, goals, 
+        hasMedicalConditions, medicalConditionsDetails,
+        takesMedication, medicationDetails,
+        ...basicData 
+      } = userData;
       
       // Apenas enviar informações físicas se for usuário
       if (isUser) {
@@ -79,7 +109,16 @@ const RegisterPage = () => {
           basicData.email, 
           basicData.password, 
           basicData.role,
-          { weight, height, age, goals }
+          { 
+            weight, 
+            height, 
+            age, 
+            goals,
+            hasMedicalConditions,
+            medicalConditionsDetails,
+            takesMedication,
+            medicationDetails
+          }
         );
       } else {
         await registerUser(
@@ -90,7 +129,7 @@ const RegisterPage = () => {
         );
       }
       
-      navigate("/dashboard");
+      navigate("/");
     } catch (err) {
       setError("Erro ao criar conta. Tente novamente.");
     }
@@ -99,13 +138,19 @@ const RegisterPage = () => {
   const nextStep = () => {
     const fieldsToValidate = step === 1 
       ? ["name", "email", "password", "confirmPassword", "role"]
+      : step === 2 
+      ? ["weight", "height", "age", "goals"] 
       : [];
 
     form.trigger(fieldsToValidate as any).then((valid) => {
       if (valid) {
-        setStep(2);
+        setStep(prev => Math.min(prev + 1, totalSteps));
       }
     });
+  };
+
+  const prevStep = () => {
+    setStep(prev => Math.max(prev - 1, 1));
   };
 
   const goalOptions: { value: UserGoal, label: string }[] = [
@@ -139,11 +184,44 @@ const RegisterPage = () => {
                 {error}
               </div>
             )}
+            
+            {/* Progress indicator */}
+            <div className="flex items-center justify-between mb-6">
+              {Array.from({ length: totalSteps }).map((_, index) => (
+                <div key={index} className="flex items-center">
+                  <div 
+                    className={`rounded-full w-8 h-8 flex items-center justify-center font-medium transition-colors ${
+                      step > index + 1
+                        ? "bg-green-100 text-green-700 border-2 border-green-500"
+                        : step === index + 1
+                        ? "bg-vivafit-100 text-vivafit-700 border-2 border-vivafit-500"
+                        : "bg-gray-100 text-gray-400"
+                    }`}
+                  >
+                    {index + 1}
+                  </div>
+                  {index < totalSteps - 1 && (
+                    <div 
+                      className={`h-0.5 w-full ${
+                        step > index + 1 ? "bg-green-500" : "bg-gray-200"
+                      }`}
+                    ></div>
+                  )}
+                </div>
+              ))}
+            </div>
 
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 {step === 1 ? (
                   <>
+                    <div className="text-center mb-4">
+                      <h2 className="text-lg font-medium">Dados de Acesso</h2>
+                      <p className="text-sm text-muted-foreground">
+                        Informações básicas para sua conta
+                      </p>
+                    </div>
+                    
                     <FormField
                       control={form.control}
                       name="name"
@@ -241,7 +319,7 @@ const RegisterPage = () => {
                       <ChevronRight className="ml-2 h-4 w-4" />
                     </Button>
                   </>
-                ) : (
+                ) : step === 2 ? (
                   /* Passo 2 - Informações físicas (apenas para usuários) */
                   <>
                     <div className="text-center mb-4">
@@ -376,7 +454,126 @@ const RegisterPage = () => {
                       <Button
                         type="button"
                         variant="outline"
-                        onClick={() => setStep(1)}
+                        onClick={prevStep}
+                        className="flex-1"
+                      >
+                        Voltar
+                      </Button>
+                      <Button
+                        type="button"
+                        className="flex-1"
+                        onClick={nextStep}
+                      >
+                        Próximo - Saúde
+                        <ChevronRight className="ml-2 h-4 w-4" />
+                      </Button>
+                    </div>
+                  </>
+                ) : (
+                  /* Passo 3 - Informações de saúde */
+                  <>
+                    <div className="text-center mb-4">
+                      <h2 className="text-lg font-medium">Informações de Saúde</h2>
+                      <p className="text-sm text-muted-foreground">
+                        Detalhes para personalizar ainda mais suas recomendações
+                      </p>
+                    </div>
+
+                    <FormField
+                      control={form.control}
+                      name="hasMedicalConditions"
+                      render={({ field }) => (
+                        <FormItem className="space-y-3">
+                          <div className="flex items-center gap-2">
+                            <Heart className="h-4 w-4 text-red-500" />
+                            <FormLabel className="text-base font-medium">Condições Médicas</FormLabel>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <FormControl>
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                            <Label htmlFor="hasMedicalConditions" className="text-sm">
+                              Possuo condições médicas que precisam de atenção
+                            </Label>
+                          </div>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    {hasMedicalConditions && (
+                      <FormField
+                        control={form.control}
+                        name="medicalConditionsDetails"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Detalhes sobre suas condições médicas</FormLabel>
+                            <FormControl>
+                              <Textarea
+                                placeholder="Ex: Diabetes tipo 2, Hipertensão, etc."
+                                className="min-h-[100px]"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
+
+                    <FormField
+                      control={form.control}
+                      name="takesMedication"
+                      render={({ field }) => (
+                        <FormItem className="space-y-3">
+                          <div className="flex items-center gap-2">
+                            <Pill className="h-4 w-4 text-blue-500" />
+                            <FormLabel className="text-base font-medium">Uso de Medicamentos</FormLabel>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <FormControl>
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                            <Label htmlFor="takesMedication" className="text-sm">
+                              Faço uso regular de medicamentos
+                            </Label>
+                          </div>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    {takesMedication && (
+                      <FormField
+                        control={form.control}
+                        name="medicationDetails"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Quais medicamentos você utiliza</FormLabel>
+                            <FormControl>
+                              <Textarea
+                                placeholder="Ex: Metformina 500mg 2x ao dia, etc."
+                                className="min-h-[100px]"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
+
+                    <div className="flex gap-3 mt-6">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={prevStep}
                         className="flex-1"
                       >
                         Voltar

@@ -1,7 +1,6 @@
-
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowRight, Activity, Dumbbell, Utensils, Brain, HeartPulse } from "lucide-react";
+import { ArrowRight, Activity, Dumbbell, Utensils, Brain, HeartPulse, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Footer } from "@/components/layout/Footer";
 import { useAuth } from "@/contexts/AuthContext";
@@ -41,6 +40,30 @@ const HomePage = () => {
     };
     
     return goals.map(goal => goalMap[goal] || goal).join(', ');
+  };
+
+  // Renderizar informação sobre condições médicas se existirem
+  const renderMedicalInfo = () => {
+    const hasMedicalConditions = user?.physicalInfo?.hasMedicalConditions;
+    const takesMedication = user?.physicalInfo?.takesMedication;
+    
+    if (!hasMedicalConditions && !takesMedication) return null;
+    
+    return (
+      <div className="mt-4 p-3 bg-blue-50 rounded-md text-sm">
+        <p className="font-medium text-blue-700">Informações de saúde:</p>
+        {hasMedicalConditions && (
+          <p className="text-blue-600">
+            • Condições médicas: {user?.physicalInfo?.medicalConditionsDetails || 'Não especificado'}
+          </p>
+        )}
+        {takesMedication && (
+          <p className="text-blue-600">
+            • Medicamentos: {user?.physicalInfo?.medicationDetails || 'Não especificado'}
+          </p>
+        )}
+      </div>
+    );
   };
 
   const featureItems = [
@@ -86,7 +109,13 @@ const HomePage = () => {
               <Activity className="h-5 w-5 text-vivafit-600" />
               <h3 className="font-medium">Seu Perfil</h3>
             </div>
-            <div className="text-sm text-muted-foreground">Dados Pessoais</div>
+            <Link 
+              to="/profile" 
+              className="flex items-center text-sm text-vivafit-600 hover:underline"
+            >
+              <User className="h-4 w-4 mr-1" />
+              Gerenciar perfil
+            </Link>
           </div>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
@@ -111,6 +140,9 @@ const HomePage = () => {
               <p className="text-sm text-muted-foreground">Objetivos</p>
               <p className="font-medium">{formatGoals(goals)}</p>
             </div>
+            
+            {renderMedicalInfo()}
+            
             <div className="pt-2">
               <Button asChild variant="outline" className="w-full">
                 <Link to="/dashboard">
@@ -206,18 +238,35 @@ const HomePage = () => {
                   'A plataforma que combina inteligência artificial com expertise profissional para oferecer recomendações personalizadas de exercícios e nutrição.'}
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
-                <Button asChild size="lg" className="rounded-full">
-                  <Link to={user ? "/dashboard" : "/register"}>
-                    {user ? "Acessar Dashboard" : "Começar Agora"}
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Link>
-                </Button>
-                {!user && (
-                  <Button asChild variant="outline" size="lg" className="rounded-full">
-                    <Link to="/login">
-                      Login
-                    </Link>
-                  </Button>
+                {user ? (
+                  <>
+                    <Button asChild size="lg" className="rounded-full">
+                      <Link to="/dashboard">
+                        Acessar Dashboard
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </Link>
+                    </Button>
+                    <Button asChild variant="outline" size="lg" className="rounded-full">
+                      <Link to="/profile">
+                        Meu Perfil
+                        <User className="ml-2 h-4 w-4" />
+                      </Link>
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button asChild size="lg" className="rounded-full">
+                      <Link to="/register">
+                        Começar Agora
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </Link>
+                    </Button>
+                    <Button asChild variant="outline" size="lg" className="rounded-full">
+                      <Link to="/login">
+                        Login
+                      </Link>
+                    </Button>
+                  </>
                 )}
               </div>
             </motion.div>

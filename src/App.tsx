@@ -11,6 +11,7 @@ import { Navbar } from "./components/layout/Navbar";
 import HomePage from "./pages/HomePage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
+import ProfilePage from "./pages/ProfilePage";
 import DashboardPage from "./pages/DashboardPage";
 import PlanPage from "./pages/PlanPage";
 import ClientsPage from "./pages/ClientsPage";
@@ -41,6 +42,7 @@ const AppRoutes = () => {
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/plan" element={<PlanPage />} />
           <Route path="/clients" element={<ClientsPage />} />
