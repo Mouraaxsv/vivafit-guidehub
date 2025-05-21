@@ -1,27 +1,31 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { User, Settings, Shield, Heart, Moon, Sun, Monitor } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { PageTransition } from "@/components/layout/PageTransition";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth, ThemeType } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
 const ProfilePage = () => {
   const navigate = useNavigate();
-  const { user, updateUser, logout } = useAuth();
+  const { user, updateUser, logout, applyTheme, applyFontSize, applyHighContrast } = useAuth();
   
   // Redirect if not logged in
+  useEffect(() => {
+    if (!user) {
+      navigate('/login');
+    }
+  }, [user, navigate]);
+  
   if (!user) {
-    navigate('/login');
     return null;
   }
   
@@ -29,7 +33,7 @@ const ProfilePage = () => {
   
   // Form states
   const [name, setName] = useState(user.name);
-  const [theme, setTheme] = useState(user.theme || 'system');
+  const [theme, setTheme] = useState<ThemeType>(user.theme || 'system');
   const [fontSize, setFontSize] = useState(user.fontSize || 'medium');
   const [highContrast, setHighContrast] = useState(user.highContrast || false);
   
@@ -51,7 +55,7 @@ const ProfilePage = () => {
     updateUser({
       name,
       physicalInfo: {
-        ...user.physicalInfo,
+        ...(user.physicalInfo || {}),
         hasMedicalConditions,
         medicalConditionsDetails,
         takesMedication,
@@ -62,11 +66,18 @@ const ProfilePage = () => {
   };
   
   const handleUpdateAppearance = () => {
+    // Apply changes to the DOM immediately
+    applyTheme(theme);
+    applyFontSize(fontSize);
+    applyHighContrast(highContrast);
+    
+    // Save to user profile
     updateUser({
       theme,
       fontSize,
       highContrast
     });
+    
     toast.success("Preferências de aparência atualizadas!");
   };
   
@@ -185,8 +196,8 @@ const ProfilePage = () => {
                       <div>
                         <h3 className="text-lg font-medium mb-4">Tema</h3>
                         <RadioGroup 
-                          defaultValue={theme} 
-                          onValueChange={setTheme as any}
+                          value={theme} 
+                          onValueChange={(value: ThemeType) => setTheme(value)}
                           className="flex flex-col sm:flex-row gap-4"
                         >
                           <div className="flex items-center space-x-2">
@@ -216,8 +227,8 @@ const ProfilePage = () => {
                       <div>
                         <h3 className="text-lg font-medium mb-4">Tamanho da Fonte</h3>
                         <RadioGroup 
-                          defaultValue={fontSize} 
-                          onValueChange={setFontSize as any}
+                          value={fontSize} 
+                          onValueChange={(value) => setFontSize(value as 'small' | 'medium' | 'large')}
                           className="flex flex-col sm:flex-row gap-4"
                         >
                           <div className="flex items-center space-x-2">

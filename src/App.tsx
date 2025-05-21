@@ -18,6 +18,7 @@ import ClientsPage from "./pages/ClientsPage";
 import ClientDetailPage from "./pages/ClientDetailPage";
 import ConsultationPage from "./pages/ConsultationPage";
 import NotFound from "./pages/NotFound";
+import ThemeProvider from "./contexts/ThemeProvider";
 
 // Scroll to top on route change
 const ScrollToTop = () => {
@@ -63,9 +64,11 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <AuthProvider>
-        <BrowserRouter>
-          <AppRoutes />
-        </BrowserRouter>
+        <ThemeProvider>
+          <BrowserRouter>
+            <AppRoutes />
+          </BrowserRouter>
+        </ThemeProvider>
       </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
