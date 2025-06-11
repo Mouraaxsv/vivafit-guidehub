@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
@@ -16,15 +15,28 @@ import { toast } from "sonner";
 
 const ProfilePage = () => {
   const navigate = useNavigate();
-  const { user, updateUser, logout, applyTheme, applyFontSize, applyHighContrast } = useAuth();
+  const { user, updateUser, logout, applyTheme, applyFontSize, applyHighContrast, isLoading } = useAuth();
   
   // Redirect if not logged in
   useEffect(() => {
-    if (!user) {
+    if (!isLoading && !user) {
       navigate('/login');
     }
-  }, [user, navigate]);
+  }, [user, isLoading, navigate]);
   
+  // Show loading while checking auth
+  if (isLoading) {
+    return (
+      <PageTransition>
+        <div className="container py-10 max-w-4xl mx-auto">
+          <div className="flex items-center justify-center h-64">
+            <div className="text-lg">Carregando...</div>
+          </div>
+        </div>
+      </PageTransition>
+    );
+  }
+
   if (!user) {
     return null;
   }
@@ -51,8 +63,8 @@ const ProfilePage = () => {
     user.physicalInfo?.medicationDetails || ''
   );
   
-  const handleUpdateProfile = () => {
-    updateUser({
+  const handleUpdateProfile = async () => {
+    await updateUser({
       name,
       physicalInfo: {
         ...(user.physicalInfo || {}),
@@ -62,23 +74,25 @@ const ProfilePage = () => {
         medicationDetails
       }
     });
-    toast.success("Perfil atualizado com sucesso!");
   };
   
-  const handleUpdateAppearance = () => {
+  const handleUpdateAppearance = async () => {
     // Apply changes to the DOM immediately
     applyTheme(theme);
     applyFontSize(fontSize);
     applyHighContrast(highContrast);
     
     // Save to user profile
-    updateUser({
+    await updateUser({
       theme,
       fontSize,
       highContrast
     });
-    
-    toast.success("Preferências de aparência atualizadas!");
+  };
+  
+  const handleLogout = async () => {
+    await logout();
+    navigate('/');
   };
   
   return (
@@ -127,10 +141,7 @@ const ProfilePage = () => {
                 <Button 
                   variant="destructive" 
                   className="mt-4"
-                  onClick={() => {
-                    logout();
-                    navigate('/');
-                  }}
+                  onClick={handleLogout}
                 >
                   Sair
                 </Button>

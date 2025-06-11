@@ -1,7 +1,9 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { toast } from "sonner";
-import { supabase } from "@/lib/supabaseClient"; // no topo
+import { supabase } from "@/integrations/supabase/client";
+import { User as SupabaseUser, Session } from '@supabase/supabase-js';
+
 export type UserRole = 'user' | 'professional';
 export type UserGoal = 'lose_weight' | 'gain_muscle' | 'improve_health' | 'increase_flexibility';
 export type ThemeType = 'light' | 'dark' | 'system';
@@ -31,6 +33,7 @@ export interface User {
 
 interface AuthContextType {
   user: User | null;
+  session: Session | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (
@@ -40,8 +43,8 @@ interface AuthContextType {
     role: UserRole, 
     physicalInfo?: UserPhysicalInfo
   ) => Promise<void>;
-  logout: () => void;
-  updateUser: (updates: Partial<User>) => void;
+  logout: () => Promise<void>;
+  updateUser: (updates: Partial<User>) => Promise<void>;
   applyTheme: (theme: ThemeType) => void;
   applyFontSize: (size: FontSize) => void;
   applyHighContrast: (enabled: boolean) => void;
@@ -49,10 +52,9 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-
-
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // Apply theme based on user preference or system default
@@ -68,11 +70,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       root.classList.add(systemTheme);
     } else {
       root.classList.add(theme);
-    }
-    
-    // If user is logged in, save this preference
-    if (user) {
-      updateUser({ theme });
     }
   };
   
@@ -91,11 +88,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } else if (size === 'large') {
       root.classList.add('text-lg');
     }
-    
-    // If user is logged in, save this preference
-    if (user) {
-      updateUser({ fontSize: size });
-    }
   };
   
   // Apply high contrast mode
@@ -107,159 +99,249 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } else {
       root.classList.remove('high-contrast');
     }
-    
-    // If user is logged in, save this preference
-    if (user) {
-      updateUser({ highContrast: enabled });
+  };
+
+  // Fetch user profile from database
+  const fetchUserProfile = async (supabaseUser: SupabaseUser) => {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', supabaseUser.id)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error fetching user profile:', error);
+        return null;
+      }
+
+      if (data) {
+        const userProfile: User = {
+          id: data.id,
+          name: data.name,
+          email: data.email || supabaseUser.email || '',
+          role: (data.role as UserRole) || 'user',
+          physicalInfo: data.physicalInfo as UserPhysicalInfo,
+          theme: (data.theme as ThemeType) || 'system',
+          fontSize: (data.fontSize as FontSize) || 'medium',
+          highContrast: data.highContrast || false,
+        };
+
+        // Apply user preferences
+        applyTheme(userProfile.theme!);
+        applyFontSize(userProfile.fontSize!);
+        applyHighContrast(userProfile.highContrast!);
+
+        return userProfile;
+      }
+
+      return null;
+    } catch (error) {
+      console.error('Error in fetchUserProfile:', error);
+      return null;
     }
   };
 
   useEffect(() => {
-  const storedUser = localStorage.getItem('vivafit_user');
-  if (storedUser) {
-    const parsedUser = JSON.parse(storedUser);
-    setUser(parsedUser);
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('Auth state changed:', event, session);
+        setSession(session);
+        
+        if (session?.user) {
+          // Fetch user profile with a slight delay to avoid blocking
+          setTimeout(async () => {
+            const userProfile = await fetchUserProfile(session.user);
+            setUser(userProfile);
+            setIsLoading(false);
+          }, 0);
+        } else {
+          setUser(null);
+          setIsLoading(false);
+        }
+      }
+    );
 
-    if (parsedUser.theme) applyTheme(parsedUser.theme);
-    if (parsedUser.fontSize) applyFontSize(parsedUser.fontSize);
-    if (parsedUser.highContrast !== undefined) applyHighContrast(parsedUser.highContrast);
-  } else {
-    applyTheme('system');
-  }
-
-  setIsLoading(false);
-}, []);
-
-// Aqui começam as funções — fora do useEffect!
-
-const login = async (email: string, password: string) => {
-  setIsLoading(true);
-  try {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error || !data.session || !data.user) throw new Error("Credenciais inválidas");
-
-    const loggedUser: User = {
-      id: data.user.id,
-      name: data.user.user_metadata.name || '',
-      email: data.user.email || '',
-      role: data.user.user_metadata.role || 'user',
-      theme: 'system',
-      fontSize: 'medium',
-      highContrast: false,
-    };
-
-    setUser(loggedUser);
-    localStorage.setItem("vivafit_user", JSON.stringify(loggedUser));
-    applyTheme(loggedUser.theme);
-    applyFontSize(loggedUser.fontSize);
-    applyHighContrast(loggedUser.highContrast);
-    toast.success("Login realizado com sucesso!");
-  } catch (error) {
-    toast.error("Erro no login");
-    throw error;
-  } finally {
-    setIsLoading(false);
-  }
-};
-
-const register = async (
-  name: string,
-  email: string,
-  password: string,
-  role: UserRole,
-  physicalInfo?: UserPhysicalInfo
-) => {
-  setIsLoading(true);
-  try {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          name,
-          role,
-          physicalInfo,
-        },
-      },
+    // Check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('Initial session check:', session);
+      setSession(session);
+      
+      if (session?.user) {
+        setTimeout(async () => {
+          const userProfile = await fetchUserProfile(session.user);
+          setUser(userProfile);
+          setIsLoading(false);
+        }, 0);
+      } else {
+        // Apply default theme if no user
+        applyTheme('system');
+        setIsLoading(false);
+      }
     });
 
-    if (error || !data.user) throw new Error("Erro ao cadastrar");
+    return () => subscription.unsubscribe();
+  }, []);
 
-    // Agora salvando na tabela 'users'
-    const { error: insertError } = await supabase.from('users').insert([
-      {
-        id: data.user.id,
-        name,
+  const login = async (email: string, password: string) => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({ 
+        email, 
+        password 
+      });
+      
+      if (error) {
+        console.error('Login error:', error);
+        throw new Error("Credenciais inválidas");
+      }
+
+      if (!data.session || !data.user) {
+        throw new Error("Erro na autenticação");
+      }
+
+      toast.success("Login realizado com sucesso!");
+    } catch (error: any) {
+      console.error('Login error:', error);
+      toast.error(error.message || "Erro no login");
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const register = async (
+    name: string,
+    email: string,
+    password: string,
+    role: UserRole,
+    physicalInfo?: UserPhysicalInfo
+  ) => {
+    setIsLoading(true);
+    try {
+      const redirectUrl = `${window.location.origin}/`;
+      
+      const { data, error } = await supabase.auth.signUp({
         email,
-        role,
-        physicalInfo,
-        theme: 'system',
-        fontSize: 'medium',
-        highContrast: false,
-      },
-    ]);
-    // Aqui você adiciona o console.error:
-if (insertError) {
-  console.error("Erro ao inserir na tabela users:", insertError); // <- ADICIONE AQUI
-  throw insertError;
-}
+        password,
+        options: {
+          emailRedirectTo: redirectUrl,
+          data: {
+            name,
+            role,
+          },
+        },
+      });
 
-    if (insertError) throw insertError;
+      if (error) {
+        console.error("Signup error:", error);
+        throw new Error("Erro ao cadastrar usuário");
+      }
 
-    const newUser: User = {
-      id: data.user.id,
-      name,
-      email,
-      role,
-      physicalInfo,
-      theme: 'system',
-      fontSize: 'medium',
-      highContrast: false,
-    };
+      if (!data.user) {
+        throw new Error("Erro ao criar usuário");
+      }
 
-    setUser(newUser);
-    localStorage.setItem("vivafit_user", JSON.stringify(newUser));
-    applyTheme(newUser.theme);
-    applyFontSize(newUser.fontSize);
-    applyHighContrast(newUser.highContrast);
-    toast.success("Cadastro realizado com sucesso!");
-  } catch (error) {
-    toast.error("Erro ao registrar usuário");
-    throw error;
-  } finally {
-    setIsLoading(false);
-  }
-};
-const updateUser = (updates: Partial<User>) => {
-  if (!user) return;
+      // Create user profile in the users table
+      const { error: insertError } = await supabase.from('users').insert([
+        {
+          id: data.user.id,
+          name,
+          email,
+          role,
+          physicalInfo,
+          theme: 'system',
+          fontSize: 'medium',
+          highContrast: false,
+        },
+      ]);
 
-  const updatedUser = { ...user, ...updates };
-  setUser(updatedUser);
-  localStorage.setItem('vivafit_user', JSON.stringify(updatedUser));
-  toast.success('Perfil atualizado com sucesso!');
-};
+      if (insertError) {
+        console.error("Error inserting user profile:", insertError);
+        throw new Error("Erro ao criar perfil do usuário");
+      }
 
-const logout = () => {
-  setUser(null);
-  localStorage.removeItem('vivafit_user');
-  toast.success('Logout realizado com sucesso!');
-};
+      toast.success("Cadastro realizado com sucesso!");
+    } catch (error: any) {
+      console.error('Registration error:', error);
+      toast.error(error.message || "Erro ao registrar usuário");
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-return (
-  <AuthContext.Provider value={{ 
-    user, 
-    isLoading, 
-    login, 
-    register, 
-    logout, 
-    updateUser,
-    applyTheme,
-    applyFontSize,
-    applyHighContrast
-  }}>
-    {children}
-  </AuthContext.Provider>
-);
+  const updateUser = async (updates: Partial<User>) => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from('users')
+        .update({
+          ...updates,
+          // Don't update id or email
+          id: undefined,
+          email: undefined,
+        })
+        .eq('id', user.id);
+
+      if (error) {
+        console.error('Error updating user:', error);
+        toast.error('Erro ao atualizar perfil');
+        return;
+      }
+
+      // Update local state
+      const updatedUser = { ...user, ...updates };
+      setUser(updatedUser);
+
+      // Apply theme/font changes if they were updated
+      if (updates.theme) applyTheme(updates.theme);
+      if (updates.fontSize) applyFontSize(updates.fontSize);
+      if (updates.highContrast !== undefined) applyHighContrast(updates.highContrast);
+
+      toast.success('Perfil atualizado com sucesso!');
+    } catch (error) {
+      console.error('Error updating user:', error);
+      toast.error('Erro ao atualizar perfil');
+    }
+  };
+
+  const logout = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error('Logout error:', error);
+        toast.error('Erro ao fazer logout');
+        return;
+      }
+      
+      setUser(null);
+      setSession(null);
+      toast.success('Logout realizado com sucesso!');
+    } catch (error) {
+      console.error('Logout error:', error);
+      toast.error('Erro ao fazer logout');
+    }
+  };
+
+  return (
+    <AuthContext.Provider value={{ 
+      user, 
+      session,
+      isLoading, 
+      login, 
+      register, 
+      logout, 
+      updateUser,
+      applyTheme,
+      applyFontSize,
+      applyHighContrast
+    }}>
+      {children}
+    </AuthContext.Provider>
+  );
 };
 
 export const useAuth = () => {

@@ -9,6 +9,42 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      client_professionals: {
+        Row: {
+          client_id: string | null
+          created_at: string
+          id: string
+          professional_id: string | null
+        }
+        Insert: {
+          client_id?: string | null
+          created_at?: string
+          id?: string
+          professional_id?: string | null
+        }
+        Update: {
+          client_id?: string | null
+          created_at?: string
+          id?: string
+          professional_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_professionals_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_professionals_professional_id_fkey"
+            columns: ["professional_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dicas_saude: {
         Row: {
           categoria: string | null
@@ -137,6 +173,124 @@ export type Database = {
             referencedColumns: ["id_usuario"]
           },
         ]
+      }
+      user_activities: {
+        Row: {
+          completed: boolean | null
+          created_at: string
+          description: string | null
+          id: string
+          scheduled_time: string | null
+          title: string
+          type: string
+          user_id: string | null
+        }
+        Insert: {
+          completed?: boolean | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          scheduled_time?: string | null
+          title: string
+          type: string
+          user_id?: string | null
+        }
+        Update: {
+          completed?: boolean | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          scheduled_time?: string | null
+          title?: string
+          type?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_activities_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_progress: {
+        Row: {
+          created_at: string
+          date: string
+          hydration_progress: number | null
+          id: string
+          notes: string | null
+          nutrition_progress: number | null
+          sleep_progress: number | null
+          user_id: string | null
+          workout_progress: number | null
+        }
+        Insert: {
+          created_at?: string
+          date?: string
+          hydration_progress?: number | null
+          id?: string
+          notes?: string | null
+          nutrition_progress?: number | null
+          sleep_progress?: number | null
+          user_id?: string | null
+          workout_progress?: number | null
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          hydration_progress?: number | null
+          id?: string
+          notes?: string | null
+          nutrition_progress?: number | null
+          sleep_progress?: number | null
+          user_id?: string | null
+          workout_progress?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_progress_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      users: {
+        Row: {
+          email: string | null
+          fontSize: string | null
+          highContrast: boolean | null
+          id: string
+          name: string
+          physicalInfo: Json | null
+          role: string | null
+          theme: string | null
+        }
+        Insert: {
+          email?: string | null
+          fontSize?: string | null
+          highContrast?: boolean | null
+          id?: string
+          name: string
+          physicalInfo?: Json | null
+          role?: string | null
+          theme?: string | null
+        }
+        Update: {
+          email?: string | null
+          fontSize?: string | null
+          highContrast?: boolean | null
+          id?: string
+          name?: string
+          physicalInfo?: Json | null
+          role?: string | null
+          theme?: string | null
+        }
+        Relationships: []
       }
       usuarios: {
         Row: {

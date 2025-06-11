@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -10,24 +9,9 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { 
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { useAuth, UserRole, UserGoal } from "@/contexts/AuthContext";
-import { 
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage
-} from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -70,7 +54,7 @@ const RegisterPage = () => {
   const { register: registerUser, isLoading } = useAuth();
   const [error, setError] = useState("");
   const [step, setStep] = useState(1);
-  const totalSteps = 3; // Agora temos 3 passos
+  const totalSteps = 3;
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -129,9 +113,10 @@ const RegisterPage = () => {
         );
       }
       
-      navigate("/");
-    } catch (err) {
-      setError("Erro ao criar conta. Tente novamente.");
+      navigate("/dashboard");
+    } catch (err: any) {
+      console.error('Registration error:', err);
+      setError(err.message || "Erro ao criar conta. Tente novamente.");
     }
   };
 
@@ -312,10 +297,10 @@ const RegisterPage = () => {
                     <Button
                       type="button"
                       className="w-full"
-                      onClick={nextStep}
+                      onClick={() => isUser ? nextStep() : form.handleSubmit(onSubmit)()}
                       disabled={isLoading}
                     >
-                      {isUser ? "Próximo - Informações Físicas" : "Criar conta"}
+                      {isUser ? "Próximo - Informações Físicas" : (isLoading ? "Criando conta..." : "Criar conta")}
                       <ChevronRight className="ml-2 h-4 w-4" />
                     </Button>
                   </>
