@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -244,18 +243,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
 
       // Create user profile in the users table
-      const { error: insertError } = await supabase.from('users').insert([
-        {
-          id: data.user.id,
-          name,
-          email,
-          role,
-          physicalInfo,
-          theme: 'system',
-          fontSize: 'medium',
-          highContrast: false,
-        },
-      ]);
+      const { error: insertError } = await supabase.from('users').insert({
+        id: data.user.id,
+        name,
+        email,
+        role,
+        physicalInfo: physicalInfo as any,
+        theme: 'system',
+        fontSize: 'medium',
+        highContrast: false,
+      });
 
       if (insertError) {
         console.error("Error inserting user profile:", insertError);
@@ -276,14 +273,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (!user) return;
 
     try {
+      const updateData: any = {
+        ...updates,
+        // Don't update id or email
+        id: undefined,
+        email: undefined,
+      };
+
+      // Convert physicalInfo to proper format if present
+      if (updates.physicalInfo) {
+        updateData.physicalInfo = updates.physicalInfo as any;
+      }
+
       const { error } = await supabase
         .from('users')
-        .update({
-          ...updates,
-          // Don't update id or email
-          id: undefined,
-          email: undefined,
-        })
+        .update(updateData)
         .eq('id', user.id);
 
       if (error) {

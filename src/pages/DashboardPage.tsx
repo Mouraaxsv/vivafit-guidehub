@@ -17,6 +17,8 @@ import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { Link } from "react-router-dom";
+import { ExerciseTracker } from "@/components/dashboard/ExerciseTracker";
+import { supabase } from "@/integrations/supabase/client";
 
 const DashboardPage = () => {
   const { user } = useAuth();
@@ -28,34 +30,38 @@ const DashboardPage = () => {
   });
 
   useEffect(() => {
-    // Simulate loading progress
-    const timer1 = setTimeout(() => {
-      setProgress(prev => ({ ...prev, workout: 35 }));
-    }, 500);
-    
-    const timer2 = setTimeout(() => {
-      setProgress(prev => ({ ...prev, nutrition: 78 }));
-    }, 700);
-    
-    const timer3 = setTimeout(() => {
-      setProgress(prev => ({ ...prev, hydration: 62 }));
-    }, 900);
-    
-    const timer4 = setTimeout(() => {
-      setProgress(prev => ({ ...prev, sleep: 85 }));
-    }, 1100);
+    const fetchTodayProgress = async () => {
+      if (!user) return;
 
-    return () => {
-      clearTimeout(timer1);
-      clearTimeout(timer2);
-      clearTimeout(timer3);
-      clearTimeout(timer4);
+      try {
+        const today = new Date().toISOString().split('T')[0];
+        
+        const { data: progressData } = await supabase
+          .from('user_progress')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('date', today)
+          .single();
+
+        if (progressData) {
+          setProgress({
+            workout: progressData.workout_progress || 0,
+            nutrition: progressData.nutrition_progress || 0,
+            hydration: progressData.hydration_progress || 0,
+            sleep: progressData.sleep_progress || 0
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching progress:', error);
+      }
     };
-  }, []);
+
+    fetchTodayProgress();
+  }, [user]);
 
   const isProfessional = user?.role === 'professional';
 
-  // Mock upcoming activities
+  // Mock upcoming activities for now
   const upcomingActivities = [
     {
       id: 1,
@@ -143,6 +149,9 @@ const DashboardPage = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
             >
+              {/* Exercise Tracker for Users */}
+              {!isProfessional && <ExerciseTracker />}
+              
               {/* Progress Overview */}
               {!isProfessional && (
                 <Card>
@@ -211,6 +220,7 @@ const DashboardPage = () => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
+                  {/* ... keep existing code (Pro/User content section) */}
                   {isProfessional ? (
                     <div className="space-y-4">
                       {clientUsers.slice(0, 3).map((client) => (
