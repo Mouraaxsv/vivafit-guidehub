@@ -31,7 +31,7 @@ interface ExerciseFormData {
 }
 
 export const ExerciseTracker = () => {
-  const { user } = useAuth();
+  const { user, session, isLoading: authLoading } = useAuth();
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -44,22 +44,50 @@ export const ExerciseTracker = () => {
     },
   });
 
+  // Debug function to log auth state
+  useEffect(() => {
+    console.log('ExerciseTracker - Auth state:', {
+      user: user?.id,
+      session: session?.user?.id,
+      authLoading,
+      isLoading
+    });
+  }, [user, session, authLoading, isLoading]);
+
   // Fetch user's exercises
   const fetchExercises = async () => {
-    if (!user) {
-      console.log('No user found');
+    console.log('fetchExercises called - Auth state:', {
+      user: user?.id,
+      session: session?.user?.id,
+      authLoading
+    });
+
+    if (authLoading) {
+      console.log('Auth still loading, skipping fetch');
+      return;
+    }
+
+    if (!user && !session?.user) {
+      console.log('No user or session found');
+      setIsLoading(false);
+      return;
+    }
+
+    const userId = user?.id || session?.user?.id;
+    if (!userId) {
+      console.log('No user ID available');
       setIsLoading(false);
       return;
     }
 
     try {
-      console.log('Fetching exercises for user:', user.id);
+      console.log('Fetching exercises for user:', userId);
       const today = new Date().toISOString().split('T')[0];
       
       const { data, error } = await supabase
         .from('user_activities')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .eq('type', 'workout')
         .gte('created_at', today)
         .order('created_at', { ascending: false });
@@ -82,17 +110,23 @@ export const ExerciseTracker = () => {
 
   useEffect(() => {
     fetchExercises();
-  }, [user]);
+  }, [user, session, authLoading]);
 
   // Add new exercise
   const onSubmit = async (data: ExerciseFormData) => {
-    if (!user) {
-      toast.error('Usuário não encontrado');
+    console.log('onSubmit called with data:', data);
+    console.log('Current auth state:', {
+      user: user?.id,
+      session: session?.user?.id
+    });
+
+    const userId = user?.id || session?.user?.id;
+    
+    if (!userId) {
+      console.error('No user ID found in user or session');
+      toast.error('Usuário não encontrado. Tente fazer login novamente.');
       return;
     }
-
-    console.log('Submitting exercise:', data);
-    console.log('User ID:', user.id);
 
     try {
       const scheduledTime = data.scheduled_time 
@@ -100,7 +134,7 @@ export const ExerciseTracker = () => {
         : null;
 
       const exerciseData = {
-        user_id: user.id,
+        user_id: userId,
         title: data.title,
         description: data.description || null,
         type: 'workout',
@@ -159,6 +193,35 @@ export const ExerciseTracker = () => {
 
   const completedCount = exercises.filter(ex => ex.completed).length;
   const totalCount = exercises.length;
+
+  // Show loading state if auth is still loading
+  if (authLoading) {
+    return (
+      <Card>
+        <CardContent className="p-8">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-vivafit-600 mx-auto"></div>
+            <p className="text-muted-foreground mt-2">Carregando...</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Show message if no user
+  if (!user && !session?.user) {
+    return (
+      <Card>
+        <CardContent className="p-8">
+          <div className="text-center">
+            <p className="text-muted-foreground">
+              Faça login para ver seus exercícios.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>

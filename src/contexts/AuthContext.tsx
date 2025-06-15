@@ -103,6 +103,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // Fetch user profile from database
   const fetchUserProfile = async (supabaseUser: SupabaseUser) => {
     try {
+      console.log('Fetching user profile for:', supabaseUser.id);
+      
       const { data, error } = await supabase
         .from('users')
         .select('*')
@@ -126,18 +128,43 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           highContrast: data.highContrast || false,
         };
 
+        console.log('User profile loaded:', userProfile);
+
         // Apply user preferences
         applyTheme(userProfile.theme!);
         applyFontSize(userProfile.fontSize!);
         applyHighContrast(userProfile.highContrast!);
 
         return userProfile;
+      } else {
+        // If no profile exists, create a basic one from Supabase user
+        console.log('No profile found, creating basic user object');
+        const basicUser: User = {
+          id: supabaseUser.id,
+          name: supabaseUser.user_metadata?.name || supabaseUser.email?.split('@')[0] || 'Usuário',
+          email: supabaseUser.email || '',
+          role: 'user' as UserRole,
+          theme: 'system' as ThemeType,
+          fontSize: 'medium' as FontSize,
+          highContrast: false,
+        };
+        
+        return basicUser;
       }
-
-      return null;
     } catch (error) {
       console.error('Error in fetchUserProfile:', error);
-      return null;
+      // Create basic user from Supabase auth user as fallback
+      const basicUser: User = {
+        id: supabaseUser.id,
+        name: supabaseUser.user_metadata?.name || supabaseUser.email?.split('@')[0] || 'Usuário',
+        email: supabaseUser.email || '',
+        role: 'user' as UserRole,
+        theme: 'system' as ThemeType,
+        fontSize: 'medium' as FontSize,
+        highContrast: false,
+      };
+      
+      return basicUser;
     }
   };
 
@@ -145,17 +172,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('Auth state changed:', event, session);
+        console.log('Auth state changed:', event, session?.user?.id);
         setSession(session);
         
         if (session?.user) {
-          // Fetch user profile with a slight delay to avoid blocking
+          // Use setTimeout to avoid blocking the auth callback
           setTimeout(async () => {
             const userProfile = await fetchUserProfile(session.user);
+            console.log('Setting user:', userProfile);
             setUser(userProfile);
             setIsLoading(false);
           }, 0);
         } else {
+          console.log('No session, clearing user');
           setUser(null);
           setIsLoading(false);
         }
@@ -164,12 +193,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('Initial session check:', session);
+      console.log('Initial session check:', session?.user?.id);
       setSession(session);
       
       if (session?.user) {
         setTimeout(async () => {
           const userProfile = await fetchUserProfile(session.user);
+          console.log('Initial user set:', userProfile);
           setUser(userProfile);
           setIsLoading(false);
         }, 0);
