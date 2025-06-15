@@ -7,11 +7,12 @@ import { supabase } from "@/integrations/supabase/client";
 
 interface Exercise {
   id: string;
-  name: string;
+  title: string;
   description?: string;
-  duration: number;
+  type: string;
   completed: boolean;
   created_at: string;
+  scheduled_time?: string;
 }
 
 interface ExerciseListProps {
@@ -25,7 +26,7 @@ export const ExerciseList = ({ exercises, onExerciseUpdated }: ExerciseListProps
       console.log("Atualizando exercício:", exerciseId, !currentStatus);
       
       const { error } = await supabase
-        .from('exercises')
+        .from('user_activities')
         .update({ completed: !currentStatus })
         .eq('id', exerciseId);
 
@@ -77,11 +78,11 @@ export const ExerciseList = ({ exercises, onExerciseUpdated }: ExerciseListProps
                 <h4 className={`font-semibold ${
                   exercise.completed ? 'text-green-800 line-through' : 'text-gray-900'
                 }`}>
-                  {exercise.name}
+                  {exercise.title}
                 </h4>
                 <div className="flex items-center gap-1 text-sm text-muted-foreground">
                   <Clock className="h-3 w-3" />
-                  <span>{exercise.duration}min</span>
+                  <span>30min</span>
                 </div>
               </div>
               

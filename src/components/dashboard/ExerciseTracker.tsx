@@ -10,11 +10,12 @@ import { ExerciseList } from "./ExerciseList";
 
 interface Exercise {
   id: string;
-  name: string;
+  title: string;
   description?: string;
-  duration: number;
+  type: string;
   completed: boolean;
   created_at: string;
+  scheduled_time?: string;
 }
 
 export const ExerciseTracker = () => {
@@ -35,10 +36,11 @@ export const ExerciseTracker = () => {
       const today = new Date().toISOString().split('T')[0];
       
       const { data, error } = await supabase
-        .from('exercises')
+        .from('user_activities')
         .select('*')
         .eq('user_id', user.id)
-        .eq('date', today)
+        .eq('type', 'exercise')
+        .gte('created_at', today)
         .order('created_at', { ascending: false });
 
       if (error) {

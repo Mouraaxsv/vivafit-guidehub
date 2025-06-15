@@ -12,9 +12,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface ExerciseFormData {
-  name: string;
+  title: string;
   description: string;
-  duration: number;
 }
 
 interface NewExerciseFormProps {
@@ -28,9 +27,8 @@ export const NewExerciseForm = ({ onExerciseAdded }: NewExerciseFormProps) => {
 
   const form = useForm<ExerciseFormData>({
     defaultValues: {
-      name: "",
+      title: "",
       description: "",
-      duration: 30,
     },
   });
 
@@ -45,12 +43,12 @@ export const NewExerciseForm = ({ onExerciseAdded }: NewExerciseFormProps) => {
 
     try {
       const { data: newExercise, error } = await supabase
-        .from('exercises')
+        .from('user_activities')
         .insert({
           user_id: user.id,
-          name: data.name,
+          title: data.title,
           description: data.description || null,
-          duration: data.duration,
+          type: 'exercise',
           completed: false,
         })
         .select()
@@ -93,7 +91,7 @@ export const NewExerciseForm = ({ onExerciseAdded }: NewExerciseFormProps) => {
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
               control={form.control}
-              name="name"
+              name="title"
               rules={{ required: "Nome do exercício é obrigatório" }}
               render={({ field }) => (
                 <FormItem>
@@ -102,29 +100,6 @@ export const NewExerciseForm = ({ onExerciseAdded }: NewExerciseFormProps) => {
                     <Input 
                       placeholder="Ex: Corrida, Musculação, Yoga..." 
                       {...field} 
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="duration"
-              rules={{ 
-                required: "Duração é obrigatória",
-                min: { value: 1, message: "Duração deve ser pelo menos 1 minuto" }
-              }}
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Duração (minutos)</FormLabel>
-                  <FormControl>
-                    <Input 
-                      type="number" 
-                      placeholder="30" 
-                      {...field}
-                      onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
                     />
                   </FormControl>
                   <FormMessage />
