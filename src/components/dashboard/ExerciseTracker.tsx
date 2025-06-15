@@ -46,9 +46,14 @@ export const ExerciseTracker = () => {
 
   // Fetch user's exercises
   const fetchExercises = async () => {
-    if (!user) return;
+    if (!user) {
+      console.log('No user found');
+      setIsLoading(false);
+      return;
+    }
 
     try {
+      console.log('Fetching exercises for user:', user.id);
       const today = new Date().toISOString().split('T')[0];
       
       const { data, error } = await supabase
@@ -61,10 +66,11 @@ export const ExerciseTracker = () => {
 
       if (error) {
         console.error('Error fetching exercises:', error);
-        toast.error('Erro ao carregar exercícios');
+        toast.error('Erro ao carregar exercícios: ' + error.message);
         return;
       }
 
+      console.log('Fetched exercises:', data);
       setExercises(data || []);
     } catch (error) {
       console.error('Error fetching exercises:', error);
@@ -80,30 +86,43 @@ export const ExerciseTracker = () => {
 
   // Add new exercise
   const onSubmit = async (data: ExerciseFormData) => {
-    if (!user) return;
+    if (!user) {
+      toast.error('Usuário não encontrado');
+      return;
+    }
+
+    console.log('Submitting exercise:', data);
+    console.log('User ID:', user.id);
 
     try {
       const scheduledTime = data.scheduled_time 
         ? new Date(data.scheduled_time).toISOString()
         : null;
 
-      const { error } = await supabase
+      const exerciseData = {
+        user_id: user.id,
+        title: data.title,
+        description: data.description || null,
+        type: 'workout',
+        scheduled_time: scheduledTime,
+        completed: false,
+      };
+
+      console.log('Exercise data to insert:', exerciseData);
+
+      const { data: insertedData, error } = await supabase
         .from('user_activities')
-        .insert({
-          user_id: user.id,
-          title: data.title,
-          description: data.description,
-          type: 'workout',
-          scheduled_time: scheduledTime,
-          completed: false,
-        });
+        .insert(exerciseData)
+        .select()
+        .single();
 
       if (error) {
         console.error('Error adding exercise:', error);
-        toast.error('Erro ao adicionar exercício');
+        toast.error('Erro ao adicionar exercício: ' + error.message);
         return;
       }
 
+      console.log('Exercise added successfully:', insertedData);
       toast.success('Exercício adicionado com sucesso!');
       form.reset();
       setIsDialogOpen(false);
@@ -117,6 +136,8 @@ export const ExerciseTracker = () => {
   // Toggle exercise completion
   const toggleExerciseCompletion = async (exerciseId: string, completed: boolean) => {
     try {
+      console.log('Toggling exercise completion:', exerciseId, !completed);
+      
       const { error } = await supabase
         .from('user_activities')
         .update({ completed: !completed })
@@ -124,7 +145,7 @@ export const ExerciseTracker = () => {
 
       if (error) {
         console.error('Error updating exercise:', error);
-        toast.error('Erro ao atualizar exercício');
+        toast.error('Erro ao atualizar exercício: ' + error.message);
         return;
       }
 
