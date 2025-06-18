@@ -28,85 +28,93 @@ export interface Consultation {
 export const useConsultations = () => {
   const { user } = useAuth();
   const [consultations, setConsultations] = useState<Consultation[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
 
   const fetchConsultations = async () => {
     if (!user) return;
 
-    setIsLoading(true);
     try {
-      let query = supabase
+      setLoading(true);
+      const { data, error } = await supabase
         .from('consultations')
         .select(`
           *,
-          client:users!consultations_client_id_fkey(name, email),
-          professional:users!consultations_professional_id_fkey(name, email)
+          client:client_id (
+            name,
+            email
+          ),
+          professional:professional_id (
+            name,
+            email
+          )
         `)
+        .or(`client_id.eq.${user.id},professional_id.eq.${user.id}`)
         .order('scheduled_date', { ascending: true });
 
-      // Filtrar baseado no tipo de usuário
-      if (user.role === 'professional') {
-        query = query.eq('professional_id', user.id);
-      } else {
-        query = query.eq('client_id', user.id);
-      }
+      if (error) throw error;
 
-      const { data, error } = await query;
+      // Type assertion para garantir que o status está correto
+      const typedData = data?.map(consultation => ({
+        ...consultation,
+        status: consultation.status as 'scheduled' | 'confirmed' | 'cancelled' | 'completed'
+      })) || [];
 
-      if (error) {
-        console.error('Error fetching consultations:', error);
-        toast.error('Erro ao carregar consultas');
-        return;
-      }
-
-      setConsultations(data || []);
+      setConsultations(typedData);
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error fetching consultations:', error);
       toast.error('Erro ao carregar consultas');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  const updateConsultationStatus = async (
-    consultationId: string, 
-    status: Consultation['status']
-  ) => {
+  const createConsultation = async (consultationData: {
+    professional_id: string;
+    scheduled_date: string;
+    scheduled_time: string;
+    duration_minutes?: number;
+    notes?: string;
+  }) => {
+    if (!user) return false;
+
     try {
       const { error } = await supabase
         .from('consultations')
-        .update({ 
-          status, 
-          updated_at: new Date().toISOString() 
-        })
-        .eq('id', consultationId);
+        .insert({
+          client_id: user.id,
+          ...consultationData,
+          duration_minutes: consultationData.duration_minutes || 60
+        });
 
-      if (error) {
-        console.error('Error updating consultation:', error);
-        toast.error('Erro ao atualizar consulta');
-        return false;
-      }
+      if (error) throw error;
 
-      toast.success('Consulta atualizada com sucesso!');
-      fetchConsultations(); // Recarregar lista
+      toast.success('Consulta agendada com sucesso!');
+      fetchConsultations();
       return true;
     } catch (error) {
-      console.error('Error:', error);
-      toast.error('Erro ao atualizar consulta');
+      console.error('Error creating consultation:', error);
+      toast.error('Erro ao agendar consulta');
       return false;
     }
   };
 
-  const cancelConsultation = async (consultationId: string) => {
-    return updateConsultationStatus(consultationId, 'cancelled');
-  };
+  const updateConsultationStatus = async (consultationId: string, status: 'scheduled' | 'confirmed' | 'cancelled' | 'completed') => {
+    try {
+      const { error } = await supabase
+        .from('consultations')
+        .update({ status, updated_at: new Date().toISOString() })
+        .eq('id', consultationId);
 
-  const confirmConsultation = async (consultationId: string) => {
-    return updateConsultationStatus(consultationId, 'confirmed');
-  };
+      if (error) throw error;
 
-  const completeConsultation = async (consultationId: string) => {
-    return updateConsultationStatus(consultationId, 'completed');
+      toast.success('Status da consulta atualizado!');
+      fetchConsultations();
+      return true;
+    } catch (error) {
+      console.error('Error updating consultation:', error);
+      toast.error('Erro ao atualizar consulta');
+      return false;
+    }
   };
 
   useEffect(() => {
@@ -115,11 +123,9 @@ export const useConsultations = () => {
 
   return {
     consultations,
-    isLoading,
+    loading,
     fetchConsultations,
-    updateConsultationStatus,
-    cancelConsultation,
-    confirmConsultation,
-    completeConsultation
+    createConsultation,
+    updateConsultationStatus
   };
 };
