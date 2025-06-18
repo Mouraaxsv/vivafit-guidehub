@@ -53,10 +53,26 @@ export const useConsultations = () => {
 
       if (error) throw error;
 
-      // Type assertion para garantir que o status está correto
-      const typedData = data?.map(consultation => ({
-        ...consultation,
-        status: consultation.status as 'scheduled' | 'confirmed' | 'cancelled' | 'completed'
+      // Mapear os dados corretamente
+      const typedData: Consultation[] = data?.map(consultation => ({
+        id: consultation.id,
+        client_id: consultation.client_id,
+        professional_id: consultation.professional_id,
+        scheduled_date: consultation.scheduled_date,
+        scheduled_time: consultation.scheduled_time,
+        duration_minutes: consultation.duration_minutes,
+        status: consultation.status as 'scheduled' | 'confirmed' | 'cancelled' | 'completed',
+        notes: consultation.notes,
+        created_at: consultation.created_at,
+        updated_at: consultation.updated_at,
+        client: consultation.client ? {
+          name: consultation.client.name || '',
+          email: consultation.client.email || ''
+        } : undefined,
+        professional: consultation.professional ? {
+          name: consultation.professional.name || '',
+          email: consultation.professional.email || ''
+        } : undefined
       })) || [];
 
       setConsultations(typedData);
@@ -117,6 +133,19 @@ export const useConsultations = () => {
     }
   };
 
+  // Funções auxiliares para simplificar o uso
+  const confirmConsultation = async (consultationId: string) => {
+    return updateConsultationStatus(consultationId, 'confirmed');
+  };
+
+  const cancelConsultation = async (consultationId: string) => {
+    return updateConsultationStatus(consultationId, 'cancelled');
+  };
+
+  const completeConsultation = async (consultationId: string) => {
+    return updateConsultationStatus(consultationId, 'completed');
+  };
+
   useEffect(() => {
     fetchConsultations();
   }, [user]);
@@ -124,8 +153,12 @@ export const useConsultations = () => {
   return {
     consultations,
     loading,
+    isLoading: loading, // Alias para compatibilidade
     fetchConsultations,
     createConsultation,
-    updateConsultationStatus
+    updateConsultationStatus,
+    confirmConsultation,
+    cancelConsultation,
+    completeConsultation
   };
 };

@@ -1,38 +1,57 @@
 
 import { motion } from "framer-motion";
-import { Calendar, Clock, User, CheckCircle, XCircle, AlertCircle } from "lucide-react";
+import { Calendar, Clock, User, Check, X, MoreVertical } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useConsultations, Consultation } from "@/hooks/useConsultations";
+import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/contexts/AuthContext";
+import { useConsultations } from "@/hooks/useConsultations";
 
 const ConsultationsList = () => {
   const { user } = useAuth();
-  const { 
-    consultations, 
-    isLoading, 
-    cancelConsultation, 
-    confirmConsultation, 
-    completeConsultation 
+  const {
+    consultations,
+    loading,
+    confirmConsultation,
+    cancelConsultation,
+    completeConsultation
   } = useConsultations();
 
-  const getStatusIcon = (status: Consultation['status']) => {
+  if (loading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Calendar className="h-5 w-5" />
+            Minhas Consultas
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8">
+            <p className="text-muted-foreground">Carregando consultas...</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const getStatusColor = (status: string) => {
     switch (status) {
       case 'scheduled':
-        return <AlertCircle className="h-4 w-4 text-yellow-500" />;
+        return 'bg-blue-100 text-blue-800';
       case 'confirmed':
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
+        return 'bg-green-100 text-green-800';
       case 'cancelled':
-        return <XCircle className="h-4 w-4 text-red-500" />;
+        return 'bg-red-100 text-red-800';
       case 'completed':
-        return <CheckCircle className="h-4 w-4 text-blue-500" />;
+        return 'bg-gray-100 text-gray-800';
       default:
-        return <Clock className="h-4 w-4 text-gray-500" />;
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
-  const getStatusText = (status: Consultation['status']) => {
+  const getStatusText = (status: string) => {
     switch (status) {
       case 'scheduled':
         return 'Agendada';
@@ -47,143 +66,133 @@ const ConsultationsList = () => {
     }
   };
 
-  const getStatusVariant = (status: Consultation['status']) => {
-    switch (status) {
-      case 'scheduled':
-        return 'secondary';
-      case 'confirmed':
-        return 'default';
-      case 'cancelled':
-        return 'destructive';
-      case 'completed':
-        return 'outline';
-      default:
-        return 'secondary';
-    }
+  const isProfessional = user?.role === 'professional';
+
+  const handleConfirm = async (consultationId: string) => {
+    await confirmConsultation(consultationId);
   };
 
-  if (isLoading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
-            Próximas Consultas
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-4">
-            <div className="text-muted-foreground">Carregando consultas...</div>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
+  const handleCancel = async (consultationId: string) => {
+    await cancelConsultation(consultationId);
+  };
 
-  const upcomingConsultations = consultations
-    .filter(consultation => {
-      const consultationDate = new Date(`${consultation.scheduled_date}T${consultation.scheduled_time}`);
-      return consultationDate >= new Date() && consultation.status !== 'cancelled';
-    })
-    .slice(0, 3); // Mostrar apenas as próximas 3
+  const handleComplete = async (consultationId: string) => {
+    await completeConsultation(consultationId);
+  };
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Calendar className="h-5 w-5" />
-          Próximas Consultas
+          {isProfessional ? 'Consultas dos Clientes' : 'Minhas Consultas'}
         </CardTitle>
         <CardDescription>
-          {user?.role === 'professional' 
-            ? 'Consultas agendadas com seus clientes' 
-            : 'Suas consultas agendadas'}
+          {isProfessional 
+            ? 'Gerencie as consultas agendadas com você'
+            : 'Suas consultas agendadas'
+          }
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {upcomingConsultations.length === 0 ? (
-          <div className="text-center py-6">
-            <Calendar className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-            <p className="text-muted-foreground">Nenhuma consulta agendada</p>
+        {consultations.length === 0 ? (
+          <div className="text-center py-8">
+            <Calendar className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+            <p className="text-muted-foreground">
+              {isProfessional 
+                ? 'Nenhuma consulta agendada ainda'
+                : 'Você ainda não tem consultas agendadas'
+              }
+            </p>
           </div>
         ) : (
           <div className="space-y-4">
-            {upcomingConsultations.map((consultation, index) => (
+            {consultations.map((consultation, index) => (
               <motion.div
                 key={consultation.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: index * 0.1 }}
+                transition={{ delay: index * 0.1 }}
                 className="border rounded-lg p-4 space-y-3"
               >
                 <div className="flex items-start justify-between">
-                  <div className="space-y-1">
+                  <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <User className="h-4 w-4 text-muted-foreground" />
                       <span className="font-medium">
-                        {user?.role === 'professional' 
-                          ? consultation.client?.name 
-                          : consultation.professional?.name}
+                        {isProfessional 
+                          ? consultation.client?.name || 'Cliente'
+                          : consultation.professional?.name || 'Profissional'
+                        }
                       </span>
+                      <Badge className={getStatusColor(consultation.status)}>
+                        {getStatusText(consultation.status)}
+                      </Badge>
                     </div>
+                    
                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
                       <div className="flex items-center gap-1">
-                        <Calendar className="h-3 w-3" />
+                        <Calendar className="h-4 w-4" />
                         {new Date(consultation.scheduled_date).toLocaleDateString('pt-BR')}
                       </div>
                       <div className="flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
+                        <Clock className="h-4 w-4" />
                         {consultation.scheduled_time} ({consultation.duration_minutes}min)
                       </div>
                     </div>
-                  </div>
-                  <Badge variant={getStatusVariant(consultation.status)}>
-                    <div className="flex items-center gap-1">
-                      {getStatusIcon(consultation.status)}
-                      {getStatusText(consultation.status)}
-                    </div>
-                  </Badge>
-                </div>
 
-                {consultation.notes && (
-                  <p className="text-sm text-muted-foreground bg-muted p-2 rounded">
-                    {consultation.notes}
-                  </p>
-                )}
-
-                {/* Ações baseadas no tipo de usuário e status */}
-                {consultation.status === 'scheduled' && (
-                  <div className="flex gap-2">
-                    {user?.role === 'professional' && (
-                      <Button
-                        size="sm"
-                        onClick={() => confirmConsultation(consultation.id)}
-                        className="flex-1"
-                      >
-                        Confirmar
-                      </Button>
+                    {consultation.notes && (
+                      <p className="text-sm text-muted-foreground">
+                        <strong>Observações:</strong> {consultation.notes}
+                      </p>
                     )}
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => cancelConsultation(consultation.id)}
-                      className="flex-1"
+                  </div>
+
+                  {/* Ações para profissionais */}
+                  {isProfessional && consultation.status !== 'completed' && consultation.status !== 'cancelled' && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        {consultation.status === 'scheduled' && (
+                          <DropdownMenuItem onClick={() => handleConfirm(consultation.id)}>
+                            <Check className="h-4 w-4 mr-2" />
+                            Confirmar
+                          </DropdownMenuItem>
+                        )}
+                        {consultation.status === 'confirmed' && (
+                          <DropdownMenuItem onClick={() => handleComplete(consultation.id)}>
+                            <Check className="h-4 w-4 mr-2" />
+                            Marcar como Concluída
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem 
+                          onClick={() => handleCancel(consultation.id)}
+                          className="text-red-600"
+                        >
+                          <X className="h-4 w-4 mr-2" />
+                          Cancelar
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
+
+                  {/* Ações para clientes */}
+                  {!isProfessional && consultation.status === 'scheduled' && (
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => handleCancel(consultation.id)}
+                      className="text-red-600 hover:text-red-700"
                     >
+                      <X className="h-4 w-4 mr-1" />
                       Cancelar
                     </Button>
-                  </div>
-                )}
-
-                {consultation.status === 'confirmed' && user?.role === 'professional' && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => completeConsultation(consultation.id)}
-                    className="w-full"
-                  >
-                    Marcar como Concluída
-                  </Button>
-                )}
+                  )}
+                </div>
               </motion.div>
             ))}
           </div>
