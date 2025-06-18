@@ -39,11 +39,11 @@ export const useConsultations = () => {
         .from('consultations')
         .select(`
           *,
-          client:client_id (
+          client:users!consultations_client_id_fkey (
             name,
             email
           ),
-          professional:professional_id (
+          professional:users!consultations_professional_id_fkey (
             name,
             email
           )
@@ -53,7 +53,7 @@ export const useConsultations = () => {
 
       if (error) throw error;
 
-      // Mapear os dados corretamente
+      // Map the data correctly
       const typedData: Consultation[] = data?.map(consultation => ({
         id: consultation.id,
         client_id: consultation.client_id,
@@ -133,7 +133,6 @@ export const useConsultations = () => {
     }
   };
 
-  // Funções auxiliares para simplificar o uso
   const confirmConsultation = async (consultationId: string) => {
     return updateConsultationStatus(consultationId, 'confirmed');
   };
@@ -153,7 +152,7 @@ export const useConsultations = () => {
   return {
     consultations,
     loading,
-    isLoading: loading, // Alias para compatibilidade
+    isLoading: loading,
     fetchConsultations,
     createConsultation,
     updateConsultationStatus,
