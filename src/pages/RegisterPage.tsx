@@ -1,967 +1,541 @@
+
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Activity, ArrowRight, Weight, Ruler, Calendar, Target, ChevronRight, Heart, Pill, Utensils, Moon, Zap } from "lucide-react";
+import { useNavigate, Link } from "react-router-dom";
+import { Eye, EyeOff, ArrowLeft, ArrowRight, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Textarea } from "@/components/ui/textarea";
 import { PageTransition } from "@/components/layout/PageTransition";
-import { useAuth, UserRole, UserGoal } from "@/contexts/AuthContext";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-
-const formSchema = z.object({
-  name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
-  email: z.string().email("Email inválido"),
-  password: z.string().min(6, "Senha deve ter pelo menos 6 caracteres"),
-  confirmPassword: z.string(),
-  role: z.enum(["user", "professional"] as const),
-  // Campos físicos apenas para usuários
-  weight: z.number().optional(),
-  height: z.number().optional(),
-  age: z.number().optional(),
-  goals: z.array(z.enum(["lose_weight", "gain_muscle", "improve_health", "increase_flexibility"] as const)).optional(),
-  // Campos de saúde expandidos
-  hasMedicalConditions: z.boolean().optional(),
-  medicalConditionsDetails: z.string().optional(),
-  takesMedication: z.boolean().optional(),
-  medicationDetails: z.string().optional(),
-  hasAllergies: z.boolean().optional(),
-  allergiesDetails: z.string().optional(),
-  exerciseFrequency: z.string().optional(),
-  smokingStatus: z.string().optional(),
-  alcoholConsumption: z.string().optional(),
-  sleepHours: z.number().optional(),
-  stressLevel: z.string().optional(),
-  previousInjuries: z.boolean().optional(),
-  injuriesDetails: z.string().optional(),
-  dietaryRestrictions: z.boolean().optional(),
-  dietaryDetails: z.string().optional(),
-}).refine(data => data.password === data.confirmPassword, {
-  message: "As senhas não coincidem",
-  path: ["confirmPassword"],
-}).refine(
-  data => !data.hasMedicalConditions || (data.hasMedicalConditions && data.medicalConditionsDetails),
-  {
-    message: "Por favor, detalhe suas condições médicas",
-    path: ["medicalConditionsDetails"],
-  }
-).refine(
-  data => !data.takesMedication || (data.takesMedication && data.medicationDetails),
-  {
-    message: "Por favor, detalhe seus medicamentos",
-    path: ["medicationDetails"],
-  }
-).refine(
-  data => !data.hasAllergies || (data.hasAllergies && data.allergiesDetails),
-  {
-    message: "Por favor, detalhe suas alergias",
-    path: ["allergiesDetails"],
-  }
-).refine(
-  data => !data.previousInjuries || (data.previousInjuries && data.injuriesDetails),
-  {
-    message: "Por favor, detalhe suas lesões anteriores",
-    path: ["injuriesDetails"],
-  }
-).refine(
-  data => !data.dietaryRestrictions || (data.dietaryRestrictions && data.dietaryDetails),
-  {
-    message: "Por favor, detalhe suas restrições alimentares",
-    path: ["dietaryDetails"],
-  }
-);
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 const RegisterPage = () => {
   const navigate = useNavigate();
-  const { register: registerUser, isLoading } = useAuth();
-  const [error, setError] = useState("");
-  const [step, setStep] = useState(1);
-  const totalSteps = 3;
-
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      name: "",
-      email: "",
-      password: "",
-      confirmPassword: "",
-      role: "user",
-      goals: [],
-      hasMedicalConditions: false,
-      takesMedication: false,
-      hasAllergies: false,
-      exerciseFrequency: "",
-      smokingStatus: "",
-      alcoholConsumption: "",
-      stressLevel: "",
-      previousInjuries: false,
-      dietaryRestrictions: false,
-    },
+  const { register } = useAuth();
+  
+  const [currentStep, setCurrentStep] = useState(1);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  
+  // Form data
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+    role: "user" as "user" | "professional"
   });
-
-  const role = form.watch("role");
-  const isUser = role === "user";
-  const hasMedicalConditions = form.watch("hasMedicalConditions");
-  const takesMedication = form.watch("takesMedication");
-  const hasAllergies = form.watch("hasAllergies");
-  const previousInjuries = form.watch("previousInjuries");
-  const dietaryRestrictions = form.watch("dietaryRestrictions");
-
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    setError("");
-    try {
-      const { confirmPassword, ...userData } = values;
-      
-      if (isUser) {
-        const { 
-          weight, height, age, goals, 
-          hasMedicalConditions, medicalConditionsDetails,
-          takesMedication, medicationDetails,
-          hasAllergies, allergiesDetails,
-          exerciseFrequency, smokingStatus, alcoholConsumption,
-          sleepHours, stressLevel,
-          previousInjuries, injuriesDetails,
-          dietaryRestrictions, dietaryDetails,
-          ...basicData 
-        } = userData;
-        
-        await registerUser(
-          basicData.name, 
-          basicData.email, 
-          basicData.password, 
-          basicData.role,
-          { 
-            weight, 
-            height, 
-            age, 
-            goals,
-            hasMedicalConditions,
-            medicalConditionsDetails,
-            takesMedication,
-            medicationDetails,
-            hasAllergies,
-            allergiesDetails,
-            exerciseFrequency,
-            smokingStatus,
-            alcoholConsumption,
-            sleepHours,
-            stressLevel,
-            previousInjuries,
-            injuriesDetails,
-            dietaryRestrictions,
-            dietaryDetails
-          }
-        );
-      } else {
-        // Para profissionais, apenas dados básicos
-        const { role, name, email, password } = userData;
-        await registerUser(name, email, password, role);
+  
+  // Health information for users
+  const [healthInfo, setHealthInfo] = useState({
+    hasMedicalConditions: false,
+    medicalConditionsDetails: "",
+    takesMedication: false,
+    medicationDetails: "",
+    hasAllergies: false,
+    allergiesDetails: "",
+    exerciseLevel: "sedentary" as "sedentary" | "light" | "moderate" | "intense",
+    sleepHours: "",
+    smokingStatus: "never" as "never" | "former" | "current",
+    alcoholConsumption: "never" as "never" | "social" | "regular" | "daily",
+    stressLevel: "low" as "low" | "moderate" | "high",
+    mentalHealthConcerns: false,
+    mentalHealthDetails: ""
+  });
+  
+  const handleNext = () => {
+    if (currentStep === 1) {
+      // Validate first step
+      if (!formData.name || !formData.email || !formData.password || !formData.confirmPassword) {
+        toast.error("Por favor, preencha todos os campos");
+        return;
       }
+      if (formData.password !== formData.confirmPassword) {
+        toast.error("As senhas não coincidem");
+        return;
+      }
+      if (formData.password.length < 6) {
+        toast.error("A senha deve ter pelo menos 6 caracteres");
+        return;
+      }
+    }
+    setCurrentStep(currentStep + 1);
+  };
+  
+  const handleBack = () => {
+    setCurrentStep(currentStep - 1);
+  };
+  
+  const handleRegister = async () => {
+    setIsLoading(true);
+    
+    try {
+      const physicalInfo = formData.role === "user" ? {
+        hasMedicalConditions: healthInfo.hasMedicalConditions,
+        medicalConditionsDetails: healthInfo.medicalConditionsDetails,
+        takesMedication: healthInfo.takesMedication,
+        medicationDetails: healthInfo.medicationDetails,
+        hasAllergies: healthInfo.hasAllergies,
+        allergiesDetails: healthInfo.allergiesDetails,
+        exerciseLevel: healthInfo.exerciseLevel,
+        sleepHours: healthInfo.sleepHours,
+        smokingStatus: healthInfo.smokingStatus,
+        alcoholConsumption: healthInfo.alcoholConsumption,
+        stressLevel: healthInfo.stressLevel,
+        mentalHealthConcerns: healthInfo.mentalHealthConcerns,
+        mentalHealthDetails: healthInfo.mentalHealthDetails
+      } : undefined;
       
+      await register(
+        formData.email,
+        formData.password,
+        formData.name,
+        formData.role,
+        physicalInfo
+      );
+      
+      toast.success("Conta criada com sucesso!");
       navigate("/dashboard");
-    } catch (err: any) {
-      console.error('Registration error:', err);
-      setError(err.message || "Erro ao criar conta. Tente novamente.");
+    } catch (error: any) {
+      console.error("Registration error:", error);
+      toast.error(error.message || "Erro ao criar conta. Tente novamente.");
+    } finally {
+      setIsLoading(false);
     }
   };
-
-  const nextStep = () => {
-    const fieldsToValidate = step === 1 
-      ? ["name", "email", "password", "confirmPassword", "role"]
-      : step === 2 
-      ? ["weight", "height", "age", "goals"] 
-      : [];
-
-    form.trigger(fieldsToValidate as any).then((valid) => {
-      if (valid) {
-        setStep(prev => Math.min(prev + 1, totalSteps));
-      }
-    });
-  };
-
-  const prevStep = () => {
-    setStep(prev => Math.max(prev - 1, 1));
-  };
-
-  const goalOptions: { value: UserGoal, label: string }[] = [
-    { value: "lose_weight", label: "Perder peso" },
-    { value: "gain_muscle", label: "Ganhar massa muscular" },
-    { value: "improve_health", label: "Melhorar saúde geral" },
-    { value: "increase_flexibility", label: "Aumentar flexibilidade" },
-  ];
-
+  
+  const totalSteps = formData.role === "user" ? 3 : 2;
+  const progressPercentage = (currentStep / totalSteps) * 100;
+  
   return (
     <PageTransition>
-      <div className="min-h-screen flex items-center justify-center px-4 py-12">
-        <div className="w-full max-w-md">
-          <div className="text-center mb-8">
-            <Link to="/" className="inline-flex items-center gap-2 text-2xl font-bold">
-              <Activity className="h-6 w-6 text-vivafit-600" />
-              <span className="text-gradient">VivaFit</span>
-            </Link>
-            <h1 className="text-2xl font-bold mt-6 mb-2">Crie sua conta</h1>
-            <p className="text-muted-foreground">Comece sua jornada para uma vida mais saudável</p>
-          </div>
-
-          <motion.div 
-            className="glass-card p-8"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-          >
-            {error && (
-              <div className="bg-red-50 text-red-600 p-3 rounded-md mb-6 text-sm">
-                {error}
+      <div className="min-h-screen bg-gradient-to-br from-vivafit-50 to-leaf-50 flex items-center justify-center p-4">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="w-full max-w-md"
+        >
+          <Card>
+            <CardHeader className="text-center">
+              <CardTitle className="text-2xl font-bold text-gray-900">
+                Criar Conta
+              </CardTitle>
+              <CardDescription>
+                {currentStep === 1 && "Informações básicas"}
+                {currentStep === 2 && formData.role === "user" && "Informações de saúde"}
+                {currentStep === 2 && formData.role === "professional" && "Finalizar cadastro"}
+                {currentStep === 3 && "Informações adicionais de saúde"}
+              </CardDescription>
+              
+              {/* Progress bar */}
+              <div className="w-full bg-gray-200 rounded-full h-2 mt-4">
+                <motion.div 
+                  className="bg-vivafit-500 h-2 rounded-full"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${progressPercentage}%` }}
+                  transition={{ duration: 0.3 }}
+                />
               </div>
-            )}
+              <p className="text-sm text-muted-foreground mt-2">
+                Etapa {currentStep} de {totalSteps}
+              </p>
+            </CardHeader>
             
-            {/* Progress indicator */}
-            <div className="flex items-center justify-between mb-6">
-              {Array.from({ length: isUser ? totalSteps : 1 }).map((_, index) => (
-                <div key={index} className="flex items-center">
-                  <div 
-                    className={`rounded-full w-8 h-8 flex items-center justify-center font-medium transition-colors ${
-                      step > index + 1
-                        ? "bg-green-100 text-green-700 border-2 border-green-500"
-                        : step === index + 1
-                        ? "bg-vivafit-100 text-vivafit-700 border-2 border-vivafit-500"
-                        : "bg-gray-100 text-gray-400"
-                    }`}
-                  >
-                    {index + 1}
+            <CardContent>
+              {/* Step 1: Basic Information */}
+              {currentStep === 1 && (
+                <motion.div
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="space-y-4"
+                >
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Nome completo</Label>
+                    <Input
+                      id="name"
+                      type="text"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      placeholder="Seu nome completo"
+                    />
                   </div>
-                  {index < (isUser ? totalSteps : 1) - 1 && (
-                    <div 
-                      className={`h-0.5 w-full ${
-                        step > index + 1 ? "bg-green-500" : "bg-gray-200"
-                      }`}
-                    ></div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      placeholder="seu@email.com"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label>Tipo de conta</Label>
+                    <RadioGroup
+                      value={formData.role}
+                      onValueChange={(value: "user" | "professional") => 
+                        setFormData({ ...formData, role: value })
+                      }
+                      className="flex flex-col space-y-2"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="user" id="user" />
+                        <Label htmlFor="user">Usuário - Quero melhorar minha saúde</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="professional" id="professional" />
+                        <Label htmlFor="professional">Profissional - Quero ajudar outros</Label>
+                      </div>
+                    </RadioGroup>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="password">Senha</Label>
+                    <div className="relative">
+                      <Input
+                        id="password"
+                        type={showPassword ? "text" : "password"}
+                        value={formData.password}
+                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                        placeholder="Mínimo 6 caracteres"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-2 top-1/2 transform -translate-y-1/2"
+                        onClick={() => setShowPassword(!showPassword)}
+                      >
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="confirmPassword">Confirmar senha</Label>
+                    <div className="relative">
+                      <Input
+                        id="confirmPassword"
+                        type={showConfirmPassword ? "text" : "password"}
+                        value={formData.confirmPassword}
+                        onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                        placeholder="Digite a senha novamente"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-2 top-1/2 transform -translate-y-1/2"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      >
+                        {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <Button onClick={handleNext} className="w-full">
+                    Próximo
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </motion.div>
+              )}
+              
+              {/* Step 2: Health Information (Users only) or Finish (Professionals) */}
+              {currentStep === 2 && (
+                <motion.div
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="space-y-4"
+                >
+                  {formData.role === "user" ? (
+                    <>
+                      <div className="space-y-4">
+                        <div className="flex items-center space-x-2">
+                          <Switch
+                            id="medical-conditions"
+                            checked={healthInfo.hasMedicalConditions}
+                            onCheckedChange={(checked) => 
+                              setHealthInfo({ ...healthInfo, hasMedicalConditions: checked })
+                            }
+                          />
+                          <Label htmlFor="medical-conditions">Possuo condições médicas</Label>
+                        </div>
+                        
+                        {healthInfo.hasMedicalConditions && (
+                          <Textarea
+                            placeholder="Descreva suas condições médicas"
+                            value={healthInfo.medicalConditionsDetails}
+                            onChange={(e) => 
+                              setHealthInfo({ ...healthInfo, medicalConditionsDetails: e.target.value })
+                            }
+                          />
+                        )}
+                        
+                        <div className="flex items-center space-x-2">
+                          <Switch
+                            id="medications"
+                            checked={healthInfo.takesMedication}
+                            onCheckedChange={(checked) => 
+                              setHealthInfo({ ...healthInfo, takesMedication: checked })
+                            }
+                          />
+                          <Label htmlFor="medications">Faço uso de medicamentos</Label>
+                        </div>
+                        
+                        {healthInfo.takesMedication && (
+                          <Textarea
+                            placeholder="Liste os medicamentos que utiliza"
+                            value={healthInfo.medicationDetails}
+                            onChange={(e) => 
+                              setHealthInfo({ ...healthInfo, medicationDetails: e.target.value })
+                            }
+                          />
+                        )}
+                        
+                        <div className="flex items-center space-x-2">
+                          <Switch
+                            id="allergies"
+                            checked={healthInfo.hasAllergies}
+                            onCheckedChange={(checked) => 
+                              setHealthInfo({ ...healthInfo, hasAllergies: checked })
+                            }
+                          />
+                          <Label htmlFor="allergies">Possuo alergias</Label>
+                        </div>
+                        
+                        {healthInfo.hasAllergies && (
+                          <Textarea
+                            placeholder="Descreva suas alergias"
+                            value={healthInfo.allergiesDetails}
+                            onChange={(e) => 
+                              setHealthInfo({ ...healthInfo, allergiesDetails: e.target.value })
+                            }
+                          />
+                        )}
+                      </div>
+                      
+                      <div className="flex space-x-2">
+                        <Button variant="outline" onClick={handleBack} className="flex-1">
+                          <ArrowLeft className="mr-2 h-4 w-4" />
+                          Voltar
+                        </Button>
+                        <Button onClick={handleNext} className="flex-1">
+                          Próximo
+                          <ArrowRight className="ml-2 h-4 w-4" />
+                        </Button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="text-center space-y-4">
+                        <div className="mx-auto w-16 h-16 bg-vivafit-100 rounded-full flex items-center justify-center">
+                          <Check className="h-8 w-8 text-vivafit-600" />
+                        </div>
+                        <h3 className="text-lg font-semibold">Quase pronto!</h3>
+                        <p className="text-muted-foreground">
+                          Clique em finalizar para criar sua conta de profissional.
+                        </p>
+                      </div>
+                      
+                      <div className="flex space-x-2">
+                        <Button variant="outline" onClick={handleBack} className="flex-1">
+                          <ArrowLeft className="mr-2 h-4 w-4" />
+                          Voltar
+                        </Button>
+                        <Button 
+                          onClick={handleRegister} 
+                          disabled={isLoading}
+                          className="flex-1"
+                        >
+                          {isLoading ? "Criando..." : "Finalizar"}
+                        </Button>
+                      </div>
+                    </>
                   )}
-                </div>
-              ))}
-            </div>
-
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                {step === 1 ? (
-                  <>
-                    <div className="text-center mb-4">
-                      <h2 className="text-lg font-medium">Dados de Acesso</h2>
-                      <p className="text-sm text-muted-foreground">
-                        Informações básicas para sua conta
-                      </p>
+                </motion.div>
+              )}
+              
+              {/* Step 3: Additional Health Information (Users only) */}
+              {currentStep === 3 && formData.role === "user" && (
+                <motion.div
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="space-y-4"
+                >
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>Nível de atividade física</Label>
+                      <RadioGroup
+                        value={healthInfo.exerciseLevel}
+                        onValueChange={(value: "sedentary" | "light" | "moderate" | "intense") => 
+                          setHealthInfo({ ...healthInfo, exerciseLevel: value })
+                        }
+                      >
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="sedentary" id="sedentary" />
+                          <Label htmlFor="sedentary">Sedentário</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="light" id="light" />
+                          <Label htmlFor="light">Leve (1-2x por semana)</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="moderate" id="moderate" />
+                          <Label htmlFor="moderate">Moderado (3-4x por semana)</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="intense" id="intense" />
+                          <Label htmlFor="intense">Intenso (5+ por semana)</Label>
+                        </div>
+                      </RadioGroup>
                     </div>
                     
-                    <FormField
-                      control={form.control}
-                      name="name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Nome completo</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Seu nome" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="email"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Email</FormLabel>
-                          <FormControl>
-                            <Input type="email" placeholder="seu@email.com" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="password"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Senha</FormLabel>
-                          <FormControl>
-                            <Input type="password" placeholder="••••••••" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="confirmPassword"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Confirmar Senha</FormLabel>
-                          <FormControl>
-                            <Input type="password" placeholder="••••••••" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="role"
-                      render={({ field }) => (
-                        <FormItem className="space-y-3">
-                          <FormLabel>Tipo de conta</FormLabel>
-                          <FormControl>
-                            <RadioGroup
-                              onValueChange={field.onChange}
-                              defaultValue={field.value}
-                              className="flex flex-col space-y-2"
-                            >
-                              <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="user" id="user" />
-                                <Label htmlFor="user" className="font-normal cursor-pointer">
-                                  Usuário - Quero receber recomendações
-                                </Label>
-                              </div>
-                              <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="professional" id="professional" />
-                                <Label htmlFor="professional" className="font-normal cursor-pointer">
-                                  Profissional - Quero ajudar usuários
-                                </Label>
-                              </div>
-                            </RadioGroup>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <Button
-                      type="button"
-                      className="w-full"
-                      onClick={() => isUser ? nextStep() : form.handleSubmit(onSubmit)()}
-                      disabled={isLoading}
-                    >
-                      {isUser ? "Próximo - Informações Físicas" : (isLoading ? "Criando conta..." : "Criar conta")}
-                      <ChevronRight className="ml-2 h-4 w-4" />
+                    <div className="space-y-2">
+                      <Label htmlFor="sleep-hours">Horas de sono por noite</Label>
+                      <Input
+                        id="sleep-hours"
+                        type="number"
+                        min="0"
+                        max="24"
+                        value={healthInfo.sleepHours}
+                        onChange={(e) => 
+                          setHealthInfo({ ...healthInfo, sleepHours: e.target.value })
+                        }
+                        placeholder="Ex: 8"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label>Hábito de fumar</Label>
+                      <RadioGroup
+                        value={healthInfo.smokingStatus}
+                        onValueChange={(value: "never" | "former" | "current") => 
+                          setHealthInfo({ ...healthInfo, smokingStatus: value })
+                        }
+                      >
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="never" id="never-smoke" />
+                          <Label htmlFor="never-smoke">Nunca fumei</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="former" id="former-smoke" />
+                          <Label htmlFor="former-smoke">Ex-fumante</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="current" id="current-smoke" />
+                          <Label htmlFor="current-smoke">Fumante atual</Label>
+                        </div>
+                      </RadioGroup>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label>Consumo de álcool</Label>
+                      <RadioGroup
+                        value={healthInfo.alcoholConsumption}
+                        onValueChange={(value: "never" | "social" | "regular" | "daily") => 
+                          setHealthInfo({ ...healthInfo, alcoholConsumption: value })
+                        }
+                      >
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="never" id="never-drink" />
+                          <Label htmlFor="never-drink">Não bebo</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="social" id="social-drink" />
+                          <Label htmlFor="social-drink">Socialmente</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="regular" id="regular-drink" />
+                          <Label htmlFor="regular-drink">Regularmente</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="daily" id="daily-drink" />
+                          <Label htmlFor="daily-drink">Diariamente</Label>
+                        </div>
+                      </RadioGroup>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label>Nível de estresse</Label>
+                      <RadioGroup
+                        value={healthInfo.stressLevel}
+                        onValueChange={(value: "low" | "moderate" | "high") => 
+                          setHealthInfo({ ...healthInfo, stressLevel: value })
+                        }
+                      >
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="low" id="low-stress" />
+                          <Label htmlFor="low-stress">Baixo</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="moderate" id="moderate-stress" />
+                          <Label htmlFor="moderate-stress">Moderado</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="high" id="high-stress" />
+                          <Label htmlFor="high-stress">Alto</Label>
+                        </div>
+                      </RadioGroup>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        id="mental-health"
+                        checked={healthInfo.mentalHealthConcerns}
+                        onCheckedChange={(checked) => 
+                          setHealthInfo({ ...healthInfo, mentalHealthConcerns: checked })
+                        }
+                      />
+                      <Label htmlFor="mental-health">Tenho preocupações com saúde mental</Label>
+                    </div>
+                    
+                    {healthInfo.mentalHealthConcerns && (
+                      <Textarea
+                        placeholder="Descreva suas preocupações (opcional)"
+                        value={healthInfo.mentalHealthDetails}
+                        onChange={(e) => 
+                          setHealthInfo({ ...healthInfo, mentalHealthDetails: e.target.value })
+                        }
+                      />
+                    )}
+                  </div>
+                  
+                  <div className="flex space-x-2">
+                    <Button variant="outline" onClick={handleBack} className="flex-1">
+                      <ArrowLeft className="mr-2 h-4 w-4" />
+                      Voltar
                     </Button>
-                  </>
-                ) : step === 2 ? (
-                  /* Passo 2 - Informações físicas e estilo de vida (apenas para usuários) */
-                  <>
-                    <div className="text-center mb-4">
-                      <h2 className="text-lg font-medium">Informações Físicas & Estilo de Vida</h2>
-                      <p className="text-sm text-muted-foreground">
-                        Essas informações nos ajudam a personalizar seu plano
-                      </p>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="weight"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>
-                              <div className="flex items-center gap-1">
-                                <Weight className="w-4 h-4" />
-                                <span>Peso (kg)</span>
-                              </div>
-                            </FormLabel>
-                            <FormControl>
-                              <Input 
-                                type="number" 
-                                placeholder="70" 
-                                {...field}
-                                onChange={e => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="height"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>
-                              <div className="flex items-center gap-1">
-                                <Ruler className="w-4 h-4" />
-                                <span>Altura (cm)</span>
-                              </div>
-                            </FormLabel>
-                            <FormControl>
-                              <Input 
-                                type="number" 
-                                placeholder="170" 
-                                {...field}
-                                onChange={e => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    <FormField
-                      control={form.control}
-                      name="age"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>
-                            <div className="flex items-center gap-1">
-                              <Calendar className="w-4 h-4" />
-                              <span>Idade</span>
-                            </div>
-                          </FormLabel>
-                          <FormControl>
-                            <Input 
-                              type="number" 
-                              placeholder="30" 
-                              {...field}
-                              onChange={e => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="goals"
-                      render={() => (
-                        <FormItem>
-                          <div className="mb-2 flex items-center gap-1">
-                            <Target className="w-4 h-4" />
-                            <FormLabel className="mb-0">Seus objetivos</FormLabel>
-                          </div>
-                          <FormMessage />
-                          <div className="space-y-2">
-                            {goalOptions.map((option) => (
-                              <FormField
-                                key={option.value}
-                                control={form.control}
-                                name="goals"
-                                render={({ field }) => {
-                                  return (
-                                    <FormItem
-                                      key={option.value}
-                                      className="flex flex-row items-start space-x-3 space-y-0 rounded-md p-2 hover:bg-muted/50"
-                                    >
-                                      <FormControl>
-                                        <Checkbox
-                                          checked={field.value?.includes(option.value)}
-                                          onCheckedChange={(checked) => {
-                                            const currentValues = field.value || [];
-                                            const newValues = checked
-                                              ? [...currentValues, option.value]
-                                              : currentValues.filter(value => value !== option.value);
-                                            field.onChange(newValues);
-                                          }}
-                                        />
-                                      </FormControl>
-                                      <FormLabel className="cursor-pointer font-normal">
-                                        {option.label}
-                                      </FormLabel>
-                                    </FormItem>
-                                  )
-                                }}
-                              />
-                            ))}
-                          </div>
-                        </FormItem>
-                      )}
-                    />
-
-                    {/* Novas perguntas de estilo de vida */}
-                    <FormField
-                      control={form.control}
-                      name="exerciseFrequency"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>
-                            <div className="flex items-center gap-1">
-                              <Zap className="w-4 h-4" />
-                              <span>Frequência de exercícios</span>
-                            </div>
-                          </FormLabel>
-                          <FormControl>
-                            <RadioGroup
-                              onValueChange={field.onChange}
-                              defaultValue={field.value}
-                              className="flex flex-col space-y-2"
-                            >
-                              <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="sedentario" id="sedentario" />
-                                <Label htmlFor="sedentario" className="font-normal cursor-pointer text-sm">
-                                  Sedentário (pouco ou nenhum exercício)
-                                </Label>
-                              </div>
-                              <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="leve" id="leve" />
-                                <Label htmlFor="leve" className="font-normal cursor-pointer text-sm">
-                                  Leve (1-3 dias por semana)
-                                </Label>
-                              </div>
-                              <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="moderado" id="moderado" />
-                                <Label htmlFor="moderado" className="font-normal cursor-pointer text-sm">
-                                  Moderado (3-5 dias por semana)
-                                </Label>
-                              </div>
-                              <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="intenso" id="intenso" />
-                                <Label htmlFor="intenso" className="font-normal cursor-pointer text-sm">
-                                  Intenso (6-7 dias por semana)
-                                </Label>
-                              </div>
-                            </RadioGroup>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="sleepHours"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>
-                              <div className="flex items-center gap-1">
-                                <Moon className="w-4 h-4" />
-                                <span>Horas de sono</span>
-                              </div>
-                            </FormLabel>
-                            <FormControl>
-                              <Input 
-                                type="number" 
-                                placeholder="8" 
-                                min="0"
-                                max="24"
-                                {...field}
-                                onChange={e => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="stressLevel"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Nível de estresse</FormLabel>
-                            <FormControl>
-                              <RadioGroup
-                                onValueChange={field.onChange}
-                                defaultValue={field.value}
-                                className="flex flex-col space-y-1"
-                              >
-                                <div className="flex items-center space-x-2">
-                                  <RadioGroupItem value="baixo" id="stress-baixo" />
-                                  <Label htmlFor="stress-baixo" className="font-normal cursor-pointer text-sm">Baixo</Label>
-                                </div>
-                                <div className="flex items-center space-x-2">
-                                  <RadioGroupItem value="medio" id="stress-medio" />
-                                  <Label htmlFor="stress-medio" className="font-normal cursor-pointer text-sm">Médio</Label>
-                                </div>
-                                <div className="flex items-center space-x-2">
-                                  <RadioGroupItem value="alto" id="stress-alto" />
-                                  <Label htmlFor="stress-alto" className="font-normal cursor-pointer text-sm">Alto</Label>
-                                </div>
-                              </RadioGroup>
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    <FormField
-                      control={form.control}
-                      name="smokingStatus"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Status de fumante</FormLabel>
-                          <FormControl>
-                            <RadioGroup
-                              onValueChange={field.onChange}
-                              defaultValue={field.value}
-                              className="flex flex-col space-y-2"
-                            >
-                              <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="nunca" id="nunca-fumou" />
-                                <Label htmlFor="nunca-fumou" className="font-normal cursor-pointer text-sm">
-                                  Nunca fumei
-                                </Label>
-                              </div>
-                              <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="ex-fumante" id="ex-fumante" />
-                                <Label htmlFor="ex-fumante" className="font-normal cursor-pointer text-sm">
-                                  Ex-fumante
-                                </Label>
-                              </div>
-                              <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="fumante" id="fumante" />
-                                <Label htmlFor="fumante" className="font-normal cursor-pointer text-sm">
-                                  Fumante atual
-                                </Label>
-                              </div>
-                            </RadioGroup>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="alcoholConsumption"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Consumo de álcool</FormLabel>
-                          <FormControl>
-                            <RadioGroup
-                              onValueChange={field.onChange}
-                              defaultValue={field.value}
-                              className="flex flex-col space-y-2"
-                            >
-                              <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="nao-bebo" id="nao-bebo" />
-                                <Label htmlFor="nao-bebo" className="font-normal cursor-pointer text-sm">
-                                  Não bebo
-                                </Label>
-                              </div>
-                              <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="social" id="social" />
-                                <Label htmlFor="social" className="font-normal cursor-pointer text-sm">
-                                  Socialmente (1-2 vezes por semana)
-                                </Label>
-                              </div>
-                              <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="moderado" id="alcool-moderado" />
-                                <Label htmlFor="alcool-moderado" className="font-normal cursor-pointer text-sm">
-                                  Moderado (3-5 vezes por semana)
-                                </Label>
-                              </div>
-                              <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="frequente" id="frequente" />
-                                <Label htmlFor="frequente" className="font-normal cursor-pointer text-sm">
-                                  Frequente (diariamente)
-                                </Label>
-                              </div>
-                            </RadioGroup>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <div className="flex gap-3 mt-6">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={prevStep}
-                        className="flex-1"
-                      >
-                        Voltar
-                      </Button>
-                      <Button
-                        type="button"
-                        className="flex-1"
-                        onClick={nextStep}
-                      >
-                        Próximo - Saúde
-                        <ChevronRight className="ml-2 h-4 w-4" />
-                      </Button>
-                    </div>
-                  </>
-                ) : (
-                  /* Passo 3 - Informações de saúde expandidas */
-                  <>
-                    <div className="text-center mb-4">
-                      <h2 className="text-lg font-medium">Informações de Saúde</h2>
-                      <p className="text-sm text-muted-foreground">
-                        Detalhes importantes para personalizar suas recomendações
-                      </p>
-                    </div>
-
-                    <FormField
-                      control={form.control}
-                      name="hasMedicalConditions"
-                      render={({ field }) => (
-                        <FormItem className="space-y-3">
-                          <div className="flex items-center gap-2">
-                            <Heart className="h-4 w-4 text-red-500" />
-                            <FormLabel className="text-base font-medium">Condições Médicas</FormLabel>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <FormControl>
-                              <Switch
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                              />
-                            </FormControl>
-                            <Label htmlFor="hasMedicalConditions" className="text-sm">
-                              Possuo condições médicas que precisam de atenção
-                            </Label>
-                          </div>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    {hasMedicalConditions && (
-                      <FormField
-                        control={form.control}
-                        name="medicalConditionsDetails"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Detalhes sobre suas condições médicas</FormLabel>
-                            <FormControl>
-                              <Textarea
-                                placeholder="Ex: Diabetes tipo 2, Hipertensão, problemas cardíacos, etc."
-                                className="min-h-[80px]"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    )}
-
-                    <FormField
-                      control={form.control}
-                      name="takesMedication"
-                      render={({ field }) => (
-                        <FormItem className="space-y-3">
-                          <div className="flex items-center gap-2">
-                            <Pill className="h-4 w-4 text-blue-500" />
-                            <FormLabel className="text-base font-medium">Uso de Medicamentos</FormLabel>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <FormControl>
-                              <Switch
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                              />
-                            </FormControl>
-                            <Label htmlFor="takesMedication" className="text-sm">
-                              Faço uso regular de medicamentos
-                            </Label>
-                          </div>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    {takesMedication && (
-                      <FormField
-                        control={form.control}
-                        name="medicationDetails"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Quais medicamentos você utiliza</FormLabel>
-                            <FormControl>
-                              <Textarea
-                                placeholder="Ex: Metformina 500mg 2x ao dia, Losartana 50mg 1x ao dia, etc."
-                                className="min-h-[80px]"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    )}
-
-                    <FormField
-                      control={form.control}
-                      name="hasAllergies"
-                      render={({ field }) => (
-                        <FormItem className="space-y-3">
-                          <div className="flex items-center gap-2">
-                            <Heart className="h-4 w-4 text-orange-500" />
-                            <FormLabel className="text-base font-medium">Alergias</FormLabel>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <FormControl>
-                              <Switch
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                              />
-                            </FormControl>
-                            <Label htmlFor="hasAllergies" className="text-sm">
-                              Possuo alergias importantes
-                            </Label>
-                          </div>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    {hasAllergies && (
-                      <FormField
-                        control={form.control}
-                        name="allergiesDetails"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Detalhes sobre suas alergias</FormLabel>
-                            <FormControl>
-                              <Textarea
-                                placeholder="Ex: Alergia a amendoim, lactose, glúten, medicamentos específicos, etc."
-                                className="min-h-[80px]"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    )}
-
-                    <FormField
-                      control={form.control}
-                      name="previousInjuries"
-                      render={({ field }) => (
-                        <FormItem className="space-y-3">
-                          <div className="flex items-center gap-2">
-                            <Zap className="h-4 w-4 text-yellow-500" />
-                            <FormLabel className="text-base font-medium">Lesões Anteriores</FormLabel>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <FormControl>
-                              <Switch
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                              />
-                            </FormControl>
-                            <Label htmlFor="previousInjuries" className="text-sm">
-                              Já tive lesões que afetam atividades físicas
-                            </Label>
-                          </div>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    {previousInjuries && (
-                      <FormField
-                        control={form.control}
-                        name="injuriesDetails"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Detalhes sobre lesões anteriores</FormLabel>
-                            <FormControl>
-                              <Textarea
-                                placeholder="Ex: Lesão no joelho direito, problema na coluna lombar, cirurgia no ombro, etc."
-                                className="min-h-[80px]"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    )}
-
-                    <FormField
-                      control={form.control}
-                      name="dietaryRestrictions"
-                      render={({ field }) => (
-                        <FormItem className="space-y-3">
-                          <div className="flex items-center gap-2">
-                            <Utensils className="h-4 w-4 text-green-500" />
-                            <FormLabel className="text-base font-medium">Restrições Alimentares</FormLabel>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <FormControl>
-                              <Switch
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                              />
-                            </FormControl>
-                            <Label htmlFor="dietaryRestrictions" className="text-sm">
-                              Possuo restrições ou preferências alimentares
-                            </Label>
-                          </div>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    {dietaryRestrictions && (
-                      <FormField
-                        control={form.control}
-                        name="dietaryDetails"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Detalhes sobre suas restrições alimentares</FormLabel>
-                            <FormControl>
-                              <Textarea
-                                placeholder="Ex: Vegetariano, vegano, sem glúten, sem lactose, dieta cetogênica, etc."
-                                className="min-h-[80px]"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    )}
-
-                    <div className="flex gap-3 mt-6">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={prevStep}
-                        className="flex-1"
-                      >
-                        Voltar
-                      </Button>
-                      <Button
-                        type="submit"
-                        className="flex-1"
-                        disabled={isLoading}
-                      >
-                        {isLoading ? "Criando conta..." : "Finalizar cadastro"}
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                      </Button>
-                    </div>
-                  </>
-                )}
-              </form>
-            </Form>
-
-            <div className="mt-6 text-center text-sm">
-              <p className="text-muted-foreground">
-                Já tem uma conta?{' '}
-                <Link to="/login" className="font-medium text-vivafit-600 hover:underline">
-                  Faça login
-                </Link>
-              </p>
-            </div>
-          </motion.div>
-        </div>
+                    <Button 
+                      onClick={handleRegister} 
+                      disabled={isLoading}
+                      className="flex-1"
+                    >
+                      {isLoading ? "Criando..." : "Finalizar"}
+                    </Button>
+                  </div>
+                </motion.div>
+              )}
+              
+              <div className="mt-6 text-center">
+                <p className="text-sm text-muted-foreground">
+                  Já tem uma conta?{" "}
+                  <Link to="/login" className="text-vivafit-600 hover:underline">
+                    Faça login
+                  </Link>
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
       </div>
     </PageTransition>
   );

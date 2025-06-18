@@ -282,6 +282,7 @@ const ProfilePage = () => {
                 <CardContent>
                   <form onSubmit={(e) => { e.preventDefault(); handleUpdateProfile(); }}>
                     <div className="space-y-6">
+                      {/* Condições médicas */}
                       <div className="space-y-4">
                         <div className="flex items-center space-x-2">
                           <Switch 
@@ -306,6 +307,7 @@ const ProfilePage = () => {
                         )}
                       </div>
                       
+                      {/* Medicamentos */}
                       <div className="space-y-4">
                         <div className="flex items-center space-x-2">
                           <Switch 
@@ -329,6 +331,95 @@ const ProfilePage = () => {
                           </div>
                         )}
                       </div>
+
+                      {/* Informações adicionais de saúde */}
+                      {user.physicalInfo?.hasAllergies !== undefined && (
+                        <div className="border-t pt-6">
+                          <h3 className="text-lg font-medium mb-4">Informações Adicionais</h3>
+                          
+                          {/* Alergias */}
+                          <div className="space-y-2 mb-4">
+                            <Label className="text-sm font-medium">Alergias:</Label>
+                            <p className="text-sm">
+                              {user.physicalInfo.hasAllergies ? 
+                                (user.physicalInfo.allergiesDetails || "Sim, mas sem detalhes") : 
+                                "Não possui alergias"
+                              }
+                            </p>
+                          </div>
+
+                          {/* Nível de exercício */}
+                          {user.physicalInfo.exerciseLevel && (
+                            <div className="space-y-2 mb-4">
+                              <Label className="text-sm font-medium">Nível de atividade física:</Label>
+                              <p className="text-sm capitalize">
+                                {user.physicalInfo.exerciseLevel === 'sedentary' && 'Sedentário'}
+                                {user.physicalInfo.exerciseLevel === 'light' && 'Leve (1-2x por semana)'}
+                                {user.physicalInfo.exerciseLevel === 'moderate' && 'Moderado (3-4x por semana)'}
+                                {user.physicalInfo.exerciseLevel === 'intense' && 'Intenso (5+ por semana)'}
+                              </p>
+                            </div>
+                          )}
+
+                          {/* Horas de sono */}
+                          {user.physicalInfo.sleepHours && (
+                            <div className="space-y-2 mb-4">
+                              <Label className="text-sm font-medium">Horas de sono por noite:</Label>
+                              <p className="text-sm">{user.physicalInfo.sleepHours} horas</p>
+                            </div>
+                          )}
+
+                          {/* Hábito de fumar */}
+                          {user.physicalInfo.smokingStatus && (
+                            <div className="space-y-2 mb-4">
+                              <Label className="text-sm font-medium">Hábito de fumar:</Label>
+                              <p className="text-sm">
+                                {user.physicalInfo.smokingStatus === 'never' && 'Nunca fumou'}
+                                {user.physicalInfo.smokingStatus === 'former' && 'Ex-fumante'}
+                                {user.physicalInfo.smokingStatus === 'current' && 'Fumante atual'}
+                              </p>
+                            </div>
+                          )}
+
+                          {/* Consumo de álcool */}
+                          {user.physicalInfo.alcoholConsumption && (
+                            <div className="space-y-2 mb-4">
+                              <Label className="text-sm font-medium">Consumo de álcool:</Label>
+                              <p className="text-sm">
+                                {user.physicalInfo.alcoholConsumption === 'never' && 'Não bebe'}
+                                {user.physicalInfo.alcoholConsumption === 'social' && 'Socialmente'}
+                                {user.physicalInfo.alcoholConsumption === 'regular' && 'Regularmente'}
+                                {user.physicalInfo.alcoholConsumption === 'daily' && 'Diariamente'}
+                              </p>
+                            </div>
+                          )}
+
+                          {/* Nível de estresse */}
+                          {user.physicalInfo.stressLevel && (
+                            <div className="space-y-2 mb-4">
+                              <Label className="text-sm font-medium">Nível de estresse:</Label>
+                              <p className="text-sm capitalize">
+                                {user.physicalInfo.stressLevel === 'low' && 'Baixo'}
+                                {user.physicalInfo.stressLevel === 'moderate' && 'Moderado'}
+                                {user.physicalInfo.stressLevel === 'high' && 'Alto'}
+                              </p>
+                            </div>
+                          )}
+
+                          {/* Saúde mental */}
+                          {user.physicalInfo.mentalHealthConcerns !== undefined && (
+                            <div className="space-y-2 mb-4">
+                              <Label className="text-sm font-medium">Preocupações com saúde mental:</Label>
+                              <p className="text-sm">
+                                {user.physicalInfo.mentalHealthConcerns ? 
+                                  (user.physicalInfo.mentalHealthDetails || "Sim, mas sem detalhes") : 
+                                  "Não possui preocupações"
+                                }
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      )}
                       
                       <Button type="submit">Salvar Informações</Button>
                     </div>
