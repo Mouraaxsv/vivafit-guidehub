@@ -19,6 +19,35 @@ const ProfilePage = () => {
   const navigate = useNavigate();
   const { user, updateUser, logout, applyTheme, applyFontSize, applyHighContrast, isLoading } = useAuth();
   
+  // ALL useState hooks must be declared at the top, before any early returns
+  const [activeTab, setActiveTab] = useState("profile");
+  
+  // Form states - using safe defaults
+  const [name, setName] = useState('');
+  const [theme, setTheme] = useState<ThemeType>('system');
+  const [fontSize, setFontSize] = useState<'small' | 'medium' | 'large'>('medium');
+  const [highContrast, setHighContrast] = useState(false);
+  
+  // Medical information states - using safe defaults
+  const [hasMedicalConditions, setHasMedicalConditions] = useState(false);
+  const [medicalConditionsDetails, setMedicalConditionsDetails] = useState('');
+  const [takesMedication, setTakesMedication] = useState(false);
+  const [medicationDetails, setMedicationDetails] = useState('');
+  
+  // Initialize form states when user data is available
+  useEffect(() => {
+    if (user) {
+      setName(user.name || '');
+      setTheme(user.theme || 'system');
+      setFontSize(user.fontSize || 'medium');
+      setHighContrast(user.highContrast || false);
+      setHasMedicalConditions(user.physicalInfo?.hasMedicalConditions || false);
+      setMedicalConditionsDetails(user.physicalInfo?.medicalConditionsDetails || '');
+      setTakesMedication(user.physicalInfo?.takesMedication || false);
+      setMedicationDetails(user.physicalInfo?.medicationDetails || '');
+    }
+  }, [user]);
+  
   // Redirect if not logged in
   useEffect(() => {
     if (!isLoading && !user) {
@@ -42,28 +71,6 @@ const ProfilePage = () => {
   if (!user) {
     return null;
   }
-  
-  const [activeTab, setActiveTab] = useState("profile");
-  
-  // Form states
-  const [name, setName] = useState(user.name);
-  const [theme, setTheme] = useState<ThemeType>(user.theme || 'system');
-  const [fontSize, setFontSize] = useState(user.fontSize || 'medium');
-  const [highContrast, setHighContrast] = useState(user.highContrast || false);
-  
-  // Medical information
-  const [hasMedicalConditions, setHasMedicalConditions] = useState(
-    user.physicalInfo?.hasMedicalConditions || false
-  );
-  const [medicalConditionsDetails, setMedicalConditionsDetails] = useState(
-    user.physicalInfo?.medicalConditionsDetails || ''
-  );
-  const [takesMedication, setTakesMedication] = useState(
-    user.physicalInfo?.takesMedication || false
-  );
-  const [medicationDetails, setMedicationDetails] = useState(
-    user.physicalInfo?.medicationDetails || ''
-  );
   
   const handleUpdateProfile = async () => {
     await updateUser({
