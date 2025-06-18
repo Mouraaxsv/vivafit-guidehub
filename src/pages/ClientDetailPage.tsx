@@ -28,7 +28,7 @@ const ClientDetailPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   
   useEffect(() => {
-    if (!user || user.role !== 'professional') {
+    if (!user) {
       navigate('/dashboard');
       return;
     }
@@ -40,6 +40,8 @@ const ClientDetailPage = () => {
   
   const fetchClientData = async () => {
     try {
+      // Se o usuário atual é 'user', buscar dados do profissional
+      // Se o usuário atual é 'professional', buscar dados do cliente
       const { data, error } = await supabase
         .from('users')
         .select('*')
@@ -48,18 +50,28 @@ const ClientDetailPage = () => {
       
       if (error) {
         console.error('Error fetching client:', error);
-        toast.error('Erro ao carregar dados do cliente');
-        navigate('/clients');
+        toast.error('Erro ao carregar dados');
+        navigate(-1);
         return;
       }
       
       setClient(data);
     } catch (error) {
       console.error('Error:', error);
-      toast.error('Erro ao carregar dados do cliente');
-      navigate('/clients');
+      toast.error('Erro ao carregar dados');
+      navigate(-1);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleScheduleConsultation = () => {
+    if (user?.role === 'user' && client?.role === 'professional') {
+      // Cliente agendando com profissional
+      navigate(`/schedule-consultation/${client.id}`);
+    } else if (user?.role === 'professional' && client?.role === 'user') {
+      // Por enquanto, redirecionar para agenda (implementar depois)
+      toast.info('Funcionalidade de agendamento pelo profissional em desenvolvimento');
     }
   };
   
@@ -80,15 +92,18 @@ const ClientDetailPage = () => {
       <PageTransition>
         <div className="container py-10 max-w-4xl mx-auto">
           <div className="text-center">
-            <h1 className="text-2xl font-bold mb-4">Cliente não encontrado</h1>
-            <Button onClick={() => navigate('/clients')}>
-              Voltar para Clientes
+            <h1 className="text-2xl font-bold mb-4">Usuário não encontrado</h1>
+            <Button onClick={() => navigate(-1)}>
+              Voltar
             </Button>
           </div>
         </div>
       </PageTransition>
     );
   }
+
+  const isClientViewingProfessional = user?.role === 'user' && client?.role === 'professional';
+  const isProfessionalViewingClient = user?.role === 'professional' && client?.role === 'user';
   
   return (
     <PageTransition>
@@ -101,15 +116,15 @@ const ClientDetailPage = () => {
           <div className="mb-6">
             <Button 
               variant="ghost" 
-              onClick={() => navigate('/clients')}
+              onClick={() => navigate(-1)}
               className="mb-4"
             >
               <ArrowLeft className="mr-2 h-4 w-4" />
-              Voltar para Clientes
+              Voltar
             </Button>
             
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              Detalhes do Cliente
+              {isClientViewingProfessional ? 'Perfil do Profissional' : 'Detalhes do Cliente'}
             </h1>
             <p className="text-muted-foreground">
               Informações completas sobre {client.name}
@@ -166,14 +181,24 @@ const ClientDetailPage = () => {
                     <span className="text-sm">Último login</span>
                     <span className="text-sm text-muted-foreground">Hoje</span>
                   </div>
-                  <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                    <span className="text-sm">Planos ativos</span>
-                    <Badge variant="outline">2</Badge>
-                  </div>
-                  <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                    <span className="text-sm">Progresso semanal</span>
-                    <span className="text-sm text-vivafit-600 font-medium">75%</span>
-                  </div>
+                  {isProfessionalViewingClient && (
+                    <>
+                      <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                        <span className="text-sm">Planos ativos</span>
+                        <Badge variant="outline">2</Badge>
+                      </div>
+                      <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                        <span className="text-sm">Progresso semanal</span>
+                        <span className="text-sm text-vivafit-600 font-medium">75%</span>
+                      </div>
+                    </>
+                  )}
+                  {isClientViewingProfessional && (
+                    <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                      <span className="text-sm">Especialização</span>
+                      <span className="text-sm text-vivafit-600 font-medium">Nutrição Esportiva</span>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -184,7 +209,7 @@ const ClientDetailPage = () => {
             <div className="mt-6">
               <HealthInfoDisplay 
                 healthInfo={client.physicalInfo}
-                title="Informações de Saúde do Cliente"
+                title={`Informações de Saúde ${isProfessionalViewingClient ? 'do Cliente' : ''}`}
                 showAllFields={true}
               />
             </div>
@@ -192,14 +217,24 @@ const ClientDetailPage = () => {
           
           {/* Ações */}
           <div className="mt-6 flex gap-3">
-            <Button className="flex-1">
-              <Calendar className="mr-2 h-4 w-4" />
-              Agendar Consulta
-            </Button>
-            <Button variant="outline" className="flex-1">
-              <Activity className="mr-2 h-4 w-4" />
-              Ver Progresso
-            </Button>
+            {isClientViewingProfessional && (
+              <Button onClick={handleScheduleConsultation} className="flex-1">
+                <Calendar className="mr-2 h-4 w-4" />
+                Agendar Consulta
+              </Button>
+            )}
+            {isProfessionalViewingClient && (
+              <>
+                <Button onClick={handleScheduleConsultation} className="flex-1">
+                  <Calendar className="mr-2 h-4 w-4" />
+                  Agendar Consulta
+                </Button>
+                <Button variant="outline" className="flex-1">
+                  <Activity className="mr-2 h-4 w-4" />
+                  Ver Progresso
+                </Button>
+              </>
+            )}
           </div>
         </motion.div>
       </div>

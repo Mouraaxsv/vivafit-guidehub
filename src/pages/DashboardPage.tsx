@@ -10,6 +10,7 @@ import { ProgressOverview } from "@/components/dashboard/ProgressOverview";
 import { ClientActivity } from "@/components/dashboard/ClientActivity";
 import { UserPlan } from "@/components/dashboard/UserPlan";
 import { DashboardCalendar } from "@/components/dashboard/DashboardCalendar";
+import ConsultationsList from "@/components/dashboard/ConsultationsList";
 
 const DashboardPage = () => {
   const { user } = useAuth();
@@ -91,6 +92,9 @@ const DashboardPage = () => {
               
               {/* Progress Overview for Users */}
               {!isProfessional && <ProgressOverview progress={progress} />}
+              
+              {/* Consultations List */}
+              <ConsultationsList />
               
               {/* Activity Section */}
               {isProfessional ? <ClientActivity /> : <UserPlan />}

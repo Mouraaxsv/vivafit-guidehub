@@ -1,77 +1,55 @@
 
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
-import { useEffect } from "react";
-import { AnimatePresence } from "framer-motion";
-import { AuthProvider } from "./contexts/AuthContext";
-import { Navbar } from "./components/layout/Navbar";
-import HomePage from "./pages/HomePage";
-import LoginPage from "./pages/LoginPage";
-import RegisterPage from "./pages/RegisterPage";
-import ProfilePage from "./pages/ProfilePage";
-import DashboardPage from "./pages/DashboardPage";
-import PlanPage from "./pages/PlanPage";
-import ClientsPage from "./pages/ClientsPage";
-import ClientDetailPage from "./pages/ClientDetailPage";
-import ConsultationPage from "./pages/ConsultationPage";
-import NotFound from "./pages/NotFound";
-import ThemeProvider from "./contexts/ThemeProvider";
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { Toaster } from "@/components/ui/sonner";
+import { AuthProvider } from '@/contexts/AuthContext';
+import { ThemeProvider } from '@/contexts/ThemeProvider';
+import { Navbar } from '@/components/layout/Navbar';
+import { Footer } from '@/components/layout/Footer';
 
-// Scroll to top on route change
-const ScrollToTop = () => {
-  const { pathname } = useLocation();
+// Pages
+import Index from '@/pages/Index';
+import HomePage from '@/pages/HomePage';
+import LoginPage from '@/pages/LoginPage';
+import RegisterPage from '@/pages/RegisterPage';
+import DashboardPage from '@/pages/DashboardPage';
+import ProfilePage from '@/pages/ProfilePage';
+import ClientsPage from '@/pages/ClientsPage';
+import ClientDetailPage from '@/pages/ClientDetailPage';
+import ConsultationPage from '@/pages/ConsultationPage';
+import PlanPage from '@/pages/PlanPage';
+import ScheduleConsultationPage from '@/pages/ScheduleConsultationPage';
+import NotFound from '@/pages/NotFound';
 
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [pathname]);
-
-  return null;
-};
-
-// Define routes and their components in a separate component
-// to ensure everything is inside Router context
-const AppRoutes = () => {
+function App() {
   return (
-    <>
-      <ScrollToTop />
-      <Navbar />
-      <AnimatePresence mode="wait">
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
-          <Route path="/profile" element={<ProfilePage />} />
-          <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/plan" element={<PlanPage />} />
-          <Route path="/clients" element={<ClientsPage />} />
-          <Route path="/clients/:id" element={<ClientDetailPage />} />
-          <Route path="/consultation" element={<ConsultationPage />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </AnimatePresence>
-      <Toaster />
-      <Sonner position="bottom-right" />
-    </>
-  );
-};
-
-const queryClient = new QueryClient();
-
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
+    <ThemeProvider>
       <AuthProvider>
-        <ThemeProvider>
-          <BrowserRouter>
-            <AppRoutes />
-          </BrowserRouter>
-        </ThemeProvider>
+        <Router>
+          <div className="min-h-screen bg-background">
+            <Navbar />
+            <main>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/home" element={<HomePage />} />
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/register" element={<RegisterPage />} />
+                <Route path="/dashboard" element={<DashboardPage />} />
+                <Route path="/profile" element={<ProfilePage />} />
+                <Route path="/clients" element={<ClientsPage />} />
+                <Route path="/client/:clientId" element={<ClientDetailPage />} />
+                <Route path="/consultation" element={<ConsultationPage />} />
+                <Route path="/plan" element={<PlanPage />} />
+                <Route path="/schedule-consultation/:professionalId" element={<ScheduleConsultationPage />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </main>
+            <Footer />
+            <Toaster />
+          </div>
+        </Router>
       </AuthProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+    </ThemeProvider>
+  );
+}
 
 export default App;
